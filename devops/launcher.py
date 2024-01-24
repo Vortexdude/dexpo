@@ -1,8 +1,8 @@
 import boto3
 import time
+
 REGION = "ap-south-1"
 APP_NAME = "boto3-sandbox"
-
 
 client = boto3.client("ec2", REGION)
 resource = boto3.resource("ec2", REGION)
@@ -16,6 +16,7 @@ class VpcInfra:
         self.vpc_available: bool True if available else False
 
     """
+
     def __init__(self, cidr: str = None, vpc_id: str = None):
         self.cidr = cidr
         self.vpc_id = vpc_id
@@ -36,9 +37,9 @@ class VpcInfra:
 
         elif self.cidr:
             self.filters.append({
-                    'Name': 'cidr-block-association.cidr-block',
-                    'Values': [self.cidr]
-                })
+                'Name': 'cidr-block-association.cidr-block',
+                'Values': [self.cidr]
+            })
 
         else:
             return False
@@ -46,27 +47,29 @@ class VpcInfra:
         response = self.client.describe_vpcs(Filters=self.filters)
         return True if response['Vpcs'] else False
 
+    def create_vpc(self):
+        """
+        launch the vpc if the vpc not available
+        """
 
-def create_vpc(cidr, name=None):
-    responce = client.create_vpc(
-        CidrBlock=cidr,
-    )
-
-    status = responce['Vpc']['State']
-    id = responce['Vpc']['VpcId']
-
-
-    while True:
-        if status.lower() == 'pending':
-            vpcInit = resource.Vpc(id)
-            print("Launching VPC . . . ")
-            status = vpcInit.state
-            time.sleep(1)
+        if not self.vpc_available and self.cidr:
+            _res = self.client.create_vpc(CidrBlock=self.cidr)
+            _state = _res['Vpc']['State']
+            _id = _res['Vpc']['VpcId']
+            while True:
+                if _state.lower() == "pending":
+                    print("Launching VPC . . . ")
+                    time.sleep(1)
+                    vpc_stat = resource.Vpc(_id)
+                    _state = vpc_stat.state
+                else:
+                    print("VPC Lauched successfully!")
+                    self.vpc_available = True
+                    break
         else:
-            print("VPC Lunached successfully!")
-            break
+            print("VPC is already Exist")
 
 
-infrasonic: VpcInfra = VpcInfra(vpc_id="vpc-08a62c4b70250463b")
+infrasonic = VpcInfra(cidr="192.168.0.0/16")
 
-print(infrasonic.vpc_available)
+infrasonic.create_vpc()
