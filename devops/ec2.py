@@ -1,6 +1,8 @@
 import boto3
 import botocore.exceptions
-from utils import logger
+from utils import logger, Utils
+
+CONF = Utils.read_json('config.json')    
 
 VPC_ID = "vpc-08a62c4b70250463b"
 SECURITY_GROUP = "sg-07336c13675c532a7"
@@ -24,6 +26,27 @@ sg_ingress_rules = [
     }
 ]
 
+
+class BaseClass:
+    def __init__(self, region, id = None):
+        self.region = region
+        self.service = boto3.resource('ec2', self.region)
+        self.resource = self.vpc(id) if id else None
+
+    def vpc(self, id: str):
+        _data = self.service.Vpc(id)
+        return {
+            'cidr_block': _data.cidr_block,
+            'cidr_block_association_set': _data.cidr_block_association_set,
+            'dhcp_options_id': _data.dhcp_options_id,
+            'instance_tenancy': _data.instance_tenancy,
+            'ipv6_cidr_block_association_set': _data.ipv6_cidr_block_association_set,
+            'is_default': _data.is_default,
+            'owner_id': _data.owner_id,
+            'state': _data.state,
+            'tags': _data.tags,
+            'vpc_id': _data.vpc_id,
+        }
 
 class AwsInfrastructure():
     """
@@ -112,8 +135,13 @@ class AwsInfrastructure():
     def create_route_table(self):
         self.client.create_route_table()
 
-infra = AwsInfrastructure(region=REGION, vpc=VPC_ID)
-infra.create_vpc('192.168.1.0/24', "boto3-testing")
+# infra = AwsInfrastructure(region=REGION, vpc=VPC_ID)
+# infra.create_vpc('192.168.1.0/24', "boto3-testing")
 # infra.create_security_group(name="boto3-testing")
 # infra.create_internet_gateway(igName="boto3-testing")
-infra.create_
+     
+
+# first check the vpc is exist or not by their name
+# if not create it 
+# if yes
+#     do the other changes

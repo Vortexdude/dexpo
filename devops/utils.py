@@ -1,8 +1,8 @@
 import logging
- 
+import json
+import pathlib
 
 FORMAT = '[%(levelname)s] - %(asctime)s - %(name)s - %(message)s'
-# Create and configure logger
 
 logging.basicConfig(
     filename="file.log",
@@ -10,8 +10,22 @@ logging.basicConfig(
     filemode="w"
 )
 
-# Creating an object
 logger = logging.getLogger("EC2")
- 
-# Setting the threshold of logger to DEBUG
 logger.setLevel(logging.INFO)
+
+
+
+class Utils:
+
+    @staticmethod
+    def read_json(file: str) -> dict:
+        """
+        Read the json file and return the json data 
+        required the file name only it will resolve the path automatically
+
+        """
+        current_path = pathlib.Path().resolve()
+        file = f"{current_path}/devops/{file}"
+        with open(file) as JSON:
+            json_dict = json.load(JSON)
+        return json_dict
