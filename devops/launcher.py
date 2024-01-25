@@ -1,14 +1,12 @@
 import boto3
 import time
+from aws_kit import Setting
 
 REGION = "ap-south-1"
 APP_NAME = "boto3-sandbox"
 
-client = boto3.client("ec2", REGION)
-resource = boto3.resource("ec2", REGION)
 
-
-def add_tags(vpc_resource, name:str):
+def add_tags(vpc_resource, name: str):
     vpc_resource.create_tags(
         Tags=[{
             "Key": "Name",
@@ -163,7 +161,13 @@ class VpcInfra(Availability):
                 break
         if self.name:
             print(f"VPC {self.name} Attaching name to the VPC")
-            add_tags(self.vpc_resource, self.name)
+            self.vpc_resource.create_tags(
+                Tags=[{
+                    "Key": "Name",
+                    "Value": self.name
+                }]
+            )
+            self.vpc_resource.wait_until_available()
             print(f"VPC {self.name} attached to VPC Successfully")
 
         else:
@@ -202,6 +206,4 @@ class VpcInfra(Availability):
         print(f"Internet gateway {self.name}-ig attached to VPC {self.vpc_id} successfully!")
 
 
-infrasonic = VpcInfra(name="Boto3-testing", cidr="192.168.0.0/16")
-# print(infrasonic.create_route_table())
-infrasonic.launch()
+# infrasonic = VpcInfra(name="Boto3-testing", cidr="192.168.0.0/16")
