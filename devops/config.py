@@ -29,7 +29,7 @@ class Config:
 
     @property
     def vpc_id(self) -> None:
-        return self._get_var("vpc_id", "vpc-08a62c4b70250463b")
+        return self._get_var("vpc_id", "")
 
     @property
     def route_table_name(self) -> None:

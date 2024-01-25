@@ -2,33 +2,22 @@ import boto3
 import time
 from aws_kit import Setting
 
-REGION = "ap-south-1"
-APP_NAME = "boto3-sandbox"
-
-
-def add_tags(vpc_resource, name: str):
-    vpc_resource.create_tags(
-        Tags=[{
-            "Key": "Name",
-            "Value": name
-        }]
-    )
-    vpc_resource.wait_until_available()
-
 
 class Base:
-    def __init__(self):
-        self.client = boto3.client("ec2", REGION)
-        self.resource = boto3.resource("ec2", REGION)
+    def __init__(self, region: str):
+        self.client = boto3.client("ec2", region)
+        self.resource = boto3.resource("ec2", region)
         self.vpc_resource = None
 
 
 class Availability(Base):
-    def __init__(self, cidr: str = None, vpc_id: str = None, name: str = None):
-        super().__init__()
-        self.cidr = cidr
+    def __init__(self, region=None, vpc_cidr=None, vpc_id=None, vpc_name=None, internet_gateway_name=None, route_table_name=None):
+        super().__init__(region)
+        self.vpc_cidr = vpc_cidr
         self.vpc_id = vpc_id
-        self.name = name
+        self.vpc_name = vpc_name
+        self.route_table_name = route_table_name
+        self.internet_gateway_name = internet_gateway_name
         self.filters = []
         self.tags = []
         self.vpc_available = False
@@ -45,16 +34,16 @@ class Availability(Base):
                 "Values": [self.vpc_id]
             })
 
-        elif self.cidr:
+        elif self.vpc_cidr:
             self.filters.append({
                 'Name': 'cidr-block-association.cidr-block',
-                'Values': [self.cidr]
+                'Values': [self.vpc_cidr]
             })
 
-        elif self.name:
+        elif self.vpc_name:
             self.filters.append({
                 "Name": "tag:Name",
-                "Values": [self.name]
+                "Values": [self.vpc_name]
 
             })
         else:
@@ -73,10 +62,10 @@ class Availability(Base):
             print("VPC Not Available")
 
     def internet_gateway(self):
-        if self.name:
+        if self.internet_gateway_name:
             self.filters.append({
                 "Name": "tag:Name",
-                "Values": [self.name+'-ig']
+                "Values": [self.internet_gateway_name]
             })
         response = self.client.describe_internet_gateways(Filters=self.filters)
 
@@ -89,10 +78,10 @@ class Availability(Base):
             print("IG Not Available")
 
     def route_table(self):
-        if self.name:
+        if self.route_table_name:
             self.filters.append({
                 "Name": "tag:Name",
-                "Values": [self.name+'-rt']
+                "Values": [self.route_table_name]
             })
         response = self.client.describe_route_tables(Filters=self.filters)
         self.filters = []
@@ -105,21 +94,28 @@ class Availability(Base):
 
 class VpcInfra(Availability):
     """
-    Args:
-        cidr: str to check the vpc is available or not in the availability zone
-    returns:
-        self.vpc_available: bool True if available else False
-    REFS = https://stackoverflow.com/questions/47329675/boto3-how-to-check-if-vpc-already-exists-before-creating-it
+    Launch and validate the vpc infrastructure using boto3.
+    it inherits some methods and parameters from Availability class that will ensure
+    the services are already launched or not if just create an instance of the class
+    it just validate the vpc service is already exist or not.
 
+    :type vpc_cidr: string
+    :param vpc_cidr: cidr is required to Launch the vpc in that
+
+    :type vpc_id: string
+    :param vpc_id: its optional for already exist the vpc or not
+
+    REFS = https://stackoverflow.com/questions/47329675/boto3-how-to-check-if-vpc-already-exists-before-creating-it
+    :return: check the services already exist or not
     """
 
-    def __init__(self, cidr: str = None, vpc_id: str = None, name: str = None):
+    def __init__(self, vpc_cidr=None, vpc_id=None, vpc_name=None, internet_gateway_name=None, route_table_name=None, *args, **kwargs):
         self.ig_id = None
 
-        if not name and vpc_id:
+        if not vpc_name and vpc_id:
             print("Please provide any identifier")
             return
-        super().__init__(cidr=cidr, vpc_id=vpc_id, name=name)
+        super().__init__(vpc_cidr=vpc_cidr, vpc_id=vpc_id, vpc_name=vpc_name, internet_gateway_name=internet_gateway_name, route_table_name=route_table_name)
         super().vpc()
         super().internet_gateway()
         super().route_table()
@@ -131,7 +127,7 @@ class VpcInfra(Availability):
 
         """
 
-        if not self.vpc_available and self.cidr:
+        if not self.vpc_available and self.vpc_cidr:
             self.create_vpc()
         if not self.ig_available:
             self.create_internet_gateway()
@@ -144,7 +140,7 @@ class VpcInfra(Availability):
         launch the vpc if the vpc not available
         """
 
-        _res = self.client.create_vpc(CidrBlock=self.cidr)
+        _res = self.client.create_vpc(CidrBlock=self.vpc_cidr)
         _state = _res['Vpc']['State']
         _id = _res['Vpc']['VpcId']
         self.vpc_resource = self.resource.Vpc(_id)
@@ -159,19 +155,16 @@ class VpcInfra(Availability):
                 self.vpc_available = True
                 self.vpc_id = _id
                 break
-        if self.name:
-            print(f"VPC {self.name} Attaching name to the VPC")
-            self.vpc_resource.create_tags(
-                Tags=[{
-                    "Key": "Name",
-                    "Value": self.name
-                }]
-            )
-            self.vpc_resource.wait_until_available()
-            print(f"VPC {self.name} attached to VPC Successfully")
 
-        else:
-            print("VPC is already Exist")
+        print(f"VPC {self.vpc_name} Attaching name to the VPC")
+        self.vpc_resource.create_tags(
+            Tags=[{
+                "Key": "Name",
+                "Value": self.vpc_name
+            }]
+        )
+        self.vpc_resource.wait_until_available()
+        print(f"VPC {self.vpc_name} attached to VPC Successfully")
 
     def create_internet_gateway(self):
         response = self.client.create_internet_gateway(
@@ -179,7 +172,7 @@ class VpcInfra(Availability):
                 "ResourceType": "internet-gateway",
                 "Tags": [{
                     "Key": "Name",
-                    "Value": self.name + '-ig'
+                    "Value": self.internet_gateway_name
                 }]
             }]
         )
@@ -198,12 +191,14 @@ class VpcInfra(Availability):
         )
         routeTable.create_tags(Tags=[{
             "Key": "Name",
-            "Value": self.name + "-rt"
+            "Value": self.route_table_name
         }])
 
     def attach_ig_to_vpc(self, ig_id):
         self.vpc_resource.attach_internet_gateway(InternetGatewayId=ig_id)
-        print(f"Internet gateway {self.name}-ig attached to VPC {self.vpc_id} successfully!")
+        print(f"Internet gateway {self.internet_gateway_name} attached to VPC {self.vpc_name} successfully!")
 
 
-# infrasonic = VpcInfra(name="Boto3-testing", cidr="192.168.0.0/16")
+config = Setting()
+infrasonic = VpcInfra(**config.__dict__)
+infrasonic.launch()

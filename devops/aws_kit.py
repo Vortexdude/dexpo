@@ -7,7 +7,7 @@ class Setting:
     def __init__(self):
         self.vpc_name = setting.vpc_name
         self.region = setting.region
-        self.vpc_id = setting.vpc_id
+        self.vpc_id = setting.vpc_id if setting.vpc_id else None
         self.vpc_cidr = setting.vpc_cidr
         self.appname = setting.appname
         self.route_table_name = setting.route_table_name
