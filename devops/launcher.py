@@ -4,6 +4,13 @@ from aws_kit import Setting
 
 
 class Base:
+    """
+    :type vpc_resource: None
+    :return: vpc_resource is used for get the boto3 resource
+     to associate with other service, and it takes only the vpc
+     identifiers like vpc and name to identify the vpc with
+     associate with.
+    """
     def __init__(self, region: str):
         self.client = boto3.client("ec2", region)
         self.resource = boto3.resource("ec2", region)
@@ -136,26 +143,12 @@ class VpcInfra(Availability):
             self.create_route_table()
 
     def create_vpc(self):
-        """
-        launch the vpc if the vpc not available
-        """
+        """launch the vpc if the vpc not available"""
 
-        _res = self.client.create_vpc(CidrBlock=self.vpc_cidr)
-        _state = _res['Vpc']['State']
-        _id = _res['Vpc']['VpcId']
-        self.vpc_resource = self.resource.Vpc(_id)
-        while True:
-            if _state.lower() == "pending":
-                print("Launching VPC . . . ")
-                time.sleep(1)
-                self.vpc_resource = self.resource.Vpc(_id)
-                _state = self.vpc_resource.state
-            else:
-                print("VPC Launched successfully!")
-                self.vpc_available = True
-                self.vpc_id = _id
-                break
-
+        response = self.client.create_vpc(CidrBlock=self.vpc_cidr)
+        vpc_id = response['Vpc']['VpcId']
+        self.vpc_resource = self.resource.Vpc(vpc_id)
+        self._wait_until_available(self.resource.Vpc(vpc_id), "VPC")
         print(f"VPC {self.vpc_name} Attaching name to the VPC")
         self.vpc_resource.create_tags(
             Tags=[{
@@ -163,8 +156,12 @@ class VpcInfra(Availability):
                 "Value": self.vpc_name
             }]
         )
-        self.vpc_resource.wait_until_available()
-        print(f"VPC {self.vpc_name} attached to VPC Successfully")
+
+    def _wait_until_available(self, resource, resource_name):
+        """Wait until the resource is available."""
+
+        resource.wait_until_available()
+        print(f"{resource_name} {self.vpc_name} is available.")
 
     def create_internet_gateway(self):
         response = self.client.create_internet_gateway(
