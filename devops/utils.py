@@ -2,17 +2,18 @@ import logging
 import json
 import pathlib
 
-FORMAT = '[%(levelname)s] - %(asctime)s - %(name)s - %(message)s'
 
-logging.basicConfig(
-    filename="file.log",
-    format=FORMAT,
-    filemode="w"
-)
+class DexLogger:
+    def __init__(self):
+        FORMAT = '[%(levelname)s] - %(asctime)s - %(name)s - %(message)s'
+        logging.basicConfig(
+            filename="file.log",
+            format=FORMAT,
+            filemode="w"
+        )
 
-logger = logging.getLogger("EC2")
-logger.setLevel(logging.INFO)
-
+    def get_logger(self):
+        return logging.getLogger("EC2")
 
 
 class Utils:

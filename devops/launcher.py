@@ -1,6 +1,16 @@
 import boto3
-import time
-from aws_kit import Setting
+from devops.models.config import RootModel
+from devops.resources.vpc.main import Vpc
+from devops.resources.vpc.route_table import RouteTable
+from devops.resources.vpc.intenet_gateway import InternetGateway
+from devops.utils import Utils
+
+# convert the json into dictionary
+_json = Utils.read_json('config.json')
+
+# pass the data into the Model fto get the accurate data
+config = RootModel(**_json)
+
 
 
 class Base:
@@ -11,6 +21,7 @@ class Base:
      identifiers like vpc and name to identify the vpc with
      associate with.
     """
+
     def __init__(self, region: str):
         self.client = boto3.client("ec2", region)
         self.resource = boto3.resource("ec2", region)
@@ -18,7 +29,8 @@ class Base:
 
 
 class Availability(Base):
-    def __init__(self, region=None, vpc_cidr=None, vpc_id=None, vpc_name=None, internet_gateway_name=None, route_table_name=None):
+    def __init__(self, region=None, vpc_cidr=None, vpc_id=None, vpc_name=None, internet_gateway_name=None,
+                 route_table_name=None):
         super().__init__(region)
         self.vpc_cidr = vpc_cidr
         self.vpc_id = vpc_id
@@ -116,13 +128,15 @@ class VpcInfra(Availability):
     :return: check the services already exist or not
     """
 
-    def __init__(self, vpc_cidr=None, vpc_id=None, vpc_name=None, internet_gateway_name=None, route_table_name=None, *args, **kwargs):
+    def __init__(self, vpc_cidr=None, vpc_id=None, vpc_name=None, internet_gateway_name=None, route_table_name=None,
+                 *args, **kwargs):
         self.ig_id = None
 
         if not vpc_name and vpc_id:
             print("Please provide any identifier")
             return
-        super().__init__(vpc_cidr=vpc_cidr, vpc_id=vpc_id, vpc_name=vpc_name, internet_gateway_name=internet_gateway_name, route_table_name=route_table_name)
+        super().__init__(vpc_cidr=vpc_cidr, vpc_id=vpc_id, vpc_name=vpc_name,
+                         internet_gateway_name=internet_gateway_name, route_table_name=route_table_name)
         super().vpc()
         super().internet_gateway()
         super().route_table()
@@ -182,7 +196,7 @@ class VpcInfra(Availability):
 
     def create_route_table(self):
         routeTable = self.vpc_resource.create_route_table()
-        route = routeTable.create_route(
+        routeTable.create_route(
             DestinationCidrBlock="0.0.0.0/0",
             GatewayId=self.ig_id
         )
@@ -190,12 +204,40 @@ class VpcInfra(Availability):
             "Key": "Name",
             "Value": self.route_table_name
         }])
+        print("route table created successfully!")
 
     def attach_ig_to_vpc(self, ig_id):
         self.vpc_resource.attach_internet_gateway(InternetGatewayId=ig_id)
         print(f"Internet gateway {self.internet_gateway_name} attached to VPC {self.vpc_name} successfully!")
 
 
-config = Setting()
-infrasonic = VpcInfra(**config.__dict__)
-infrasonic.launch()
+# config = Setting()
+# infrasonic = VpcInfra(**config.__dict__)
+# infrasonic.launch()
+
+
+class Master:
+
+    def __init__(self, name=None, state=False, dry_run=False, region=None, cidr_block=None, route_table=None, internet_gateway=None, *args, **kwargs):
+        self.vpc = Vpc(vpc_name=name, state=state, dry_run=dry_run, vpc_cidr=cidr_block, region=region)
+        self.ig = InternetGateway(name=internet_gateway['name'], state=internet_gateway['state'], dry_run=dry_run, region=region)
+        self.rt = RouteTable(name=name, state=state, dry_run=dry_run)
+
+    def availability(self):
+        vpc_data = self.vpc.validate()
+        ig_data = self.ig.validate()
+        rt_data = self.rt.validate()
+        print(vpc_data)
+        print(ig_data)
+        print(rt_data)
+
+
+def runner(*args, **kwargs):
+    for _vdata in kwargs['vpc']:
+        master = Master(**_vdata)
+        master.availability()
+
+
+def run():
+    runner(**config.model_dump())
+
