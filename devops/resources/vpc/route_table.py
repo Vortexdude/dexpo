@@ -31,11 +31,10 @@ class RouteTable(Base):
         except Exception as e:
             print(f"Something went wrong {e}")
 
-    def create(self, internet_gateway_id: str, vpc_id: str):
+    def create(self, vpc_resource, internet_gateway_id: str):
         if self.state == "present":
-            if vpc_id:
-                resource = self.resource.Vpc(vpc_id)
-                routeTable = resource.create_route_table()
+            if vpc_resource:
+                routeTable = vpc_resource.create_route_table()
                 if internet_gateway_id:
                     routeTable.create_route(
                         DestinationCidrBlock="0.0.0.0/0",
@@ -49,7 +48,7 @@ class RouteTable(Base):
                 else:
                     print("Please provide the internet_gateway_id")
             else:
-                print("Please provide the vpc id...")
+                print("Unknown vpc resource while Creating RouteTable")
 
     def delete(self):
         pass

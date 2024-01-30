@@ -4,6 +4,7 @@ from devops.resources.vpc.main import Vpc
 from devops.resources.vpc.route_table import RouteTable
 from devops.resources.vpc.intenet_gateway import InternetGateway
 from devops.utils import Utils
+from devops.resources.vpc import Base
 
 # convert the json into dictionary
 _json = Utils.read_json('config.json')
@@ -23,24 +24,7 @@ class BaseVpcInit:
         self.vpc_resource = None
 
 
-class DependenciesResolver(BaseVpcInit):
-    def __init__(self):
-        super().__init__()
-
-    def validate(self):
-        if self.vpc_id:
-            if self.ig_id:
-                if self.rt_id:
-                    pass
-                else:
-                    print("Please launch internet gateway for launch the route table")
-            else:
-                print("Please launch internet gateway first ")
-        else:
-            print("Please Launch VPC first")
-
-
-class Master(DependenciesResolver):
+class Master(BaseVpcInit, Base):
     """
     Launch and validate the vpc infrastructure using boto3.
     it inherits some methods and parameters from Availability class that will ensure
@@ -59,7 +43,9 @@ class Master(DependenciesResolver):
     def __init__(self, name=None, state=False, dry_run=False, region=None, cidr_block=None, route_table=None,
                  internet_gateway=None, *args, **kwargs):
 
-        super().__init__()
+        super(BaseVpcInit, self).__init__(region)
+        super(Base, self).__init__()
+
         self.vpc = Vpc(vpc_name=name, state=state, dry_run=dry_run, vpc_cidr=cidr_block, region=region)
         self.ig = InternetGateway(
             name=internet_gateway.get('name', ''),
@@ -77,7 +63,9 @@ class Master(DependenciesResolver):
         try:
             _vpc_data: dict = self.vpc.validate()
             self.vpc_available = _vpc_data['available']
-            self.vpc_id = _vpc_data['id']
+            if self.vpc_available:
+                self.vpc_id = _vpc_data['id']
+                self.vpc_resource = self.resource.Vpc(self.vpc_id)
 
             _ig_data: dict = self.ig.validate()
             self.ig_available = _ig_data['available']
@@ -91,17 +79,18 @@ class Master(DependenciesResolver):
             print(f"Error during availability check: {e}")
 
     def create(self):
-        super().validate()
         if not self.vpc_available:
             _vpc_data = self.vpc.create()
             self.vpc_id = _vpc_data['resource_id']
+            self.vpc_resource = self.resource.Vpc(self.vpc_id)
             print(_vpc_data)  # debug
-        if not self.ig_available:
-            _ig_data = self.ig.create(self.vpc_id)
-            self.ig_id = _ig_data['resource_id']
-            print(_ig_data)  # debug
-        if not self.rt_available:
-            self.rt.create(self.ig_id, self.vpc_id)
+        if self.vpc_resource:
+            if not self.ig_available:
+                _ig_data = self.ig.create(self.vpc_resource)
+                self.ig_id = _ig_data['resource_id']
+                print(_ig_data)  # debug
+            if not self.rt_available:
+                self.rt.create(self.vpc_resource, self.ig_id)
 
 
 def runner(*args, **kwargs):

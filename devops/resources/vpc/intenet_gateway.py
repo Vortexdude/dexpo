@@ -33,7 +33,7 @@ class InternetGateway(Base):
         except Exception as e:
             print(f"Something went wrong {e}")
 
-    def create(self, vpc_id: str):
+    def create(self, vpc_resource):
         response = self.client.create_internet_gateway(
             TagSpecifications=[{
                 "ResourceType": "internet-gateway",
@@ -47,13 +47,14 @@ class InternetGateway(Base):
             print("Internet Gateway Created Successfully!")
             _ig = response['InternetGateway']['InternetGatewayId']
             self.ig_id = _ig
-            if vpc_id:
-                resource = self.resource.Vpc(vpc_id)
-                resource.attach_internet_gateway(InternetGatewayId=self.ig_id)
+            if vpc_resource:
+                vpc_resource.attach_internet_gateway(InternetGatewayId=self.ig_id)
                 print(f"Internet gateway {self.ig_name} attached to VPC successfully!")
 
+            else:
+                print("Unknown VPC resource while launching the Internet gateway")
         else:
-            print("There is an error")
+            print("There is an error while creating the InternetGateway")
 
         resource_status = True
         message = "Resource Launched successfully!"
