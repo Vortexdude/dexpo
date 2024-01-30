@@ -1,4 +1,4 @@
-from devops.models.vpc import ResourceValidationResponseModel
+from devops.models.vpc import ResourceValidationResponseModel, ResourceCreationResponseModel
 from devops.resources.vpc import Base
 
 
@@ -35,6 +35,7 @@ class RouteTable(Base):
         if self.state == "present":
             if vpc_resource:
                 routeTable = vpc_resource.create_route_table()
+                self.id = str(routeTable.id)
                 if internet_gateway_id:
                     routeTable.create_route(
                         DestinationCidrBlock="0.0.0.0/0",
@@ -44,7 +45,14 @@ class RouteTable(Base):
                         "Key": "Name",
                         "Value": self.name
                     }])
+
                     print("route table created successfully!")
+                    return ResourceCreationResponseModel(
+                        status=True,
+                        message="route table created successfully!",
+                        resource_id=self.id
+                    ).model_dump()
+
                 else:
                     print("Please provide the internet_gateway_id")
             else:

@@ -10,6 +10,10 @@ class BaseClass(BaseModel):
     dry_run: Optional[bool] = True
 
 
+class Subnet(BaseClass):
+    cidr: str
+
+
 class InternetGatewayModel(BaseClass):
     pass
 
@@ -23,6 +27,7 @@ class VpcModel(BaseClass):
     cidr_block: str
     route_table: Optional[RouteTableModel] = None
     internet_gateway: Optional[InternetGatewayModel] = None
+    subnets: Optional[list[Subnet]] = None
 
 
 class RootModel(BaseModel):

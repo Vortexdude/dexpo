@@ -1,10 +1,11 @@
 import boto3
 from devops.models.config import RootModel
+from devops.resources.vpc import Resources, Base
 from devops.resources.vpc.main import Vpc
 from devops.resources.vpc.route_table import RouteTable
 from devops.resources.vpc.intenet_gateway import InternetGateway
+from devops.resources.vpc.subnet import Subnet
 from devops.utils import Utils
-from devops.resources.vpc import Base
 
 # convert the json into dictionary
 _json = Utils.read_json('config.json')
@@ -40,12 +41,23 @@ class Master(BaseVpcInit, Base):
     REFS = https://stackoverflow.com/questions/47329675/boto3-how-to-check-if-vpc-already-exists-before-creating-it
     :return: check the services already exist or not
     """
-    def __init__(self, name=None, state=False, dry_run=False, region=None, cidr_block=None, route_table=None,
-                 internet_gateway=None, *args, **kwargs):
+
+    def __init__(
+            self,
+            name: str = None,
+            state: str = False,
+            dry_run: bool = False,
+            region: str = None,
+            cidr_block: str = None,
+            route_table: dict = None,
+            internet_gateway: dict = None,
+            subnets: list[dict] = None,
+            *args, **kwargs):
 
         super(BaseVpcInit, self).__init__(region)
         super(Base, self).__init__()
-
+        self.rt_resource = None
+        self.subnets = subnets
         self.vpc = Vpc(vpc_name=name, state=state, dry_run=dry_run, vpc_cidr=cidr_block, region=region)
         self.ig = InternetGateway(
             name=internet_gateway.get('name', ''),
@@ -66,6 +78,8 @@ class Master(BaseVpcInit, Base):
             if self.vpc_available:
                 self.vpc_id = _vpc_data['id']
                 self.vpc_resource = self.resource.Vpc(self.vpc_id)
+                for i in range(len(self.subnets)):
+                    self.subnets[i]['name'] = Subnet().validate()
 
             _ig_data: dict = self.ig.validate()
             self.ig_available = _ig_data['available']
@@ -90,7 +104,19 @@ class Master(BaseVpcInit, Base):
                 self.ig_id = _ig_data['resource_id']
                 print(_ig_data)  # debug
             if not self.rt_available:
-                self.rt.create(self.vpc_resource, self.ig_id)
+                _rt_data = self.rt.create(self.vpc_resource, self.ig_id)
+                self.rt_id = _rt_data['resource_id']
+                self.rt_resource = Resources().rt(self.rt_id)
+        for subnet in self.subnets:
+            subnet = Subnet(
+                name=subnet.get('name', ''),
+                state=subnet.get('state', ''),
+                dry_run=subnet.get('dry_run', ''),
+                subnet_cidr=subnet.get('cidr', '')
+            )
+
+            data = subnet.create(self.vpc_resource, self.rt_resource)
+            print(data)
 
 
 def runner(*args, **kwargs):
@@ -102,4 +128,4 @@ def runner(*args, **kwargs):
 
 def run():
     runner(**config.model_dump())
-
+    # print(_json)

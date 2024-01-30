@@ -1,8 +1,8 @@
-from ..vpc import Base
+from devops.resources.vpc import Base, BaseAbstractmethod
 from devops.models.vpc import ResourceValidationResponseModel, ResourceCreationResponseModel
 
 
-class InternetGateway(Base):
+class InternetGateway(Base, BaseAbstractmethod):
 
     def __init__(self, name=None, state=False, dry_run=False, region=None, *args, **kwargs):
         self.ig_id = ""

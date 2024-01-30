@@ -1,8 +1,8 @@
-from ..vpc import Base
+from ..vpc import Base, BaseAbstractmethod
 from devops.models.vpc import ResourceValidationResponseModel, ResourceCreationResponseModel
 
 
-class Vpc(Base):
+class Vpc(Base, BaseAbstractmethod):
 
     def __init__(self, vpc_name=None, state=False, dry_run=False, vpc_id='', vpc_cidr=None, region=None, *args, **kwargs):
         region = region if region else "ap-south-1"
