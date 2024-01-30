@@ -1,10 +1,10 @@
-from devops.models.config import ResponseModel
+from devops.models.vpc import ResourceValidationResponseModel
 from devops.resources.vpc import Base
 
 
 class RouteTable(Base):
 
-    def __init__(self, name=None, state=None, dry_run=False, region="ap-south-1"):
+    def __init__(self, name=None, state=None, dry_run=False, region="ap-south-1", destination_cidr_block=None):
         self.rt_available = False
         region = region if region else "ap-south-1"
         super().__init__(region=region)
@@ -14,7 +14,8 @@ class RouteTable(Base):
         self.id = ""
 
     def validate(self):
-        if self.name:
+        try:
+
             response = self.client.describe_route_tables(Filters=[{
                 "Name": "tag:Name",
                 "Values": [self.name]
@@ -25,10 +26,30 @@ class RouteTable(Base):
             else:
                 print("RT Not Available")
 
-        return ResponseModel(available=self.rt_available, id=self.id).model_dump()
+            return ResourceValidationResponseModel(available=self.rt_available, id=self.id).model_dump()
 
-    def create(self):
-        pass
+        except Exception as e:
+            print(f"Something went wrong {e}")
+
+    def create(self, internet_gateway_id: str, vpc_id: str):
+        if self.state == "present":
+            if vpc_id:
+                resource = self.resource.Vpc(vpc_id)
+                routeTable = resource.create_route_table()
+                if internet_gateway_id:
+                    routeTable.create_route(
+                        DestinationCidrBlock="0.0.0.0/0",
+                        GatewayId=internet_gateway_id
+                    )
+                    routeTable.create_tags(Tags=[{
+                        "Key": "Name",
+                        "Value": self.name
+                    }])
+                    print("route table created successfully!")
+                else:
+                    print("Please provide the internet_gateway_id")
+            else:
+                print("Please provide the vpc id...")
 
     def delete(self):
         pass

@@ -4,11 +4,6 @@ from pydantic import BaseModel
 # https://stackoverflow.com/questions/67699451/make-every-field-as-optional-with-pydantic
 
 
-class ResponseModel(BaseModel):
-    available: bool
-    id: Optional[str]
-
-
 class BaseClass(BaseModel):
     name: str
     state: str
@@ -20,7 +15,7 @@ class InternetGatewayModel(BaseClass):
 
 
 class RouteTableModel(BaseClass):
-    pass
+    DestinationCidrBlock: str
 
 
 class VpcModel(BaseClass):

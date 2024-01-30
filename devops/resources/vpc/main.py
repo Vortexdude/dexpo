@@ -1,5 +1,5 @@
 from ..vpc import Base
-from devops.models.config import ResponseModel
+from devops.models.vpc import ResourceValidationResponseModel, ResourceCreationResponseModel
 
 
 class Vpc(Base):
@@ -52,10 +52,42 @@ class Vpc(Base):
         else:
             print("VPC Not Available")
 
-        return ResponseModel(available=self.vpc_available, id=self.vpc_id).model_dump()
+        return ResourceValidationResponseModel(available=self.vpc_available, id=self.vpc_id).model_dump()
 
     def create(self):
-        pass
+        """launch the vpc if the vpc not available"""
+        resource_status = False
+        message = ""
+        try:
+            if self.state == "present":
+                response = self.client.create_vpc(CidrBlock=self.vpc_cidr)
+                self.vpc_id = response['Vpc']['VpcId']
+                self.vpc_resource = self.resource.Vpc(self.vpc_id)
+                self._wait_until_available(self.resource.Vpc(self.vpc_id), "VPC")
+                print(f"VPC {self.vpc_name} Attaching name to the VPC")
+                self.vpc_resource.create_tags(
+                    Tags=[{
+                        "Key": "Name",
+                        "Value": self.vpc_name
+                    }]
+                )
+                resource_status = True
+                message = "Vpc Created Successfully!"
+
+        except Exception as e:
+            print(f"There are some error in launching the vpc {e}")
+
+        return ResourceCreationResponseModel(
+            status=resource_status,
+            message=message,
+            resource_id=self.vpc_id
+        ).model_dump()
+
+    def _wait_until_available(self, resource, resource_name):
+        """Wait until the resource is available."""
+
+        resource.wait_until_available()
+        print(f"{resource_name} {self.vpc_name} is available.")
 
     def delete(self):
         pass
