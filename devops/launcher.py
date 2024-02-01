@@ -54,76 +54,82 @@ class Master(BaseVpcInit, Base):
             subnets: list[dict] = None,
             *args, **kwargs):
 
-        super(BaseVpcInit, self).__init__(region)
+        super().__init__()
         super(Base, self).__init__()
-        self.rt_resource = None
+        self._subnets_availability = []
         self.subnets = subnets
-        self.vpc = Vpc(vpc_name=name, state=state, dry_run=dry_run, vpc_cidr=cidr_block, region=region)
-        self.ig = InternetGateway(
+
+        """Validating the VPC"""
+
+        self._vpc = Vpc(vpc_name=name, state=state, dry_run=dry_run, vpc_cidr=cidr_block, region=region)
+        self._vpc_data = self._vpc.validate()
+        print(self._vpc_data['message'])
+        if self._vpc_data['available']:
+            self.vpc_id = self._vpc_data['id']
+            self.vpc_resource = self._vpc_data['resource']
+        else:
+            self.vpc_resource = None
+            self.vpc_id = ''
+
+        """Validating the Internet Gateway"""
+
+        self._ig = InternetGateway(
             name=internet_gateway.get('name', ''),
             state=internet_gateway.get('state', ''),
             dry_run=internet_gateway.get('dry_run', ''),
             region=internet_gateway.get('region', '')
         )
-        self.rt = RouteTable(
+        self._ig_data = self._ig.validate()
+        print(self._ig_data['message'])
+        if self._ig_data['available']:
+            self.ig_id = self._ig_data['id']
+            self.ig_resource = self._ig_data['resource']
+        else:
+            self.ig_resource = None
+            self.ig_id = ""
+
+        """Validating the route table"""
+
+        self._rt = RouteTable(
             name=route_table.get('name', ''),
             state=route_table.get('state', ''),
             dry_run=route_table.get('dry_run', '')
         )
+        self._rt_data = self._rt.validate()
+        print(self._rt_data['message'])
+        if self._rt_data['available']:
+            self.rt_id = self._rt_data['id']
+            self.rt_resource = self._rt_data['resource']
+        else:
+            self.rt_resource = None
+            self.rt_id = ""
 
-    def availability(self):
-        try:
-            _vpc_data: dict = self.vpc.validate()
-            self.vpc_available = _vpc_data['available']
-            if self.vpc_available:
-                self.vpc_id = _vpc_data['id']
-                self.vpc_resource = self.resource.Vpc(self.vpc_id)
-                for i in range(len(self.subnets)):
-                    self.subnets[i]['name'] = Subnet().validate()
+    def launch(self):
+        if not self._vpc_data['available']:
+            self._vpc_data = self._vpc.create()
+            print(self._vpc_data['message'])
+            if self._vpc_data['status']:
+                self.vpc_resource = self._vpc_data['resource']
+                self.vpc_id = self._vpc_data['resource_id']
 
-            _ig_data: dict = self.ig.validate()
-            self.ig_available = _ig_data['available']
-            self.ig_id = _ig_data['id']
+        if not self._ig_data['available']:
+            self._ig_data = self._ig.create(self.vpc_resource)
+            print(self._ig_data['message'])
+            if self._ig_data['status']:
+                self.ig_resource = self._ig_data['resource']
+                self.ig_id = self._ig_data['resource_id']
 
-            _rt_data: dict = self.rt.validate()
-            self.rt_available = _rt_data['available']
-            self.rt_id = _rt_data['id']
-
-        except Exception as e:
-            print(f"Error during availability check: {e}")
-
-    def create(self):
-        if not self.vpc_available:
-            _vpc_data = self.vpc.create()
-            self.vpc_id = _vpc_data['resource_id']
-            self.vpc_resource = self.resource.Vpc(self.vpc_id)
-            print(_vpc_data)  # debug
-        if self.vpc_resource:
-            if not self.ig_available:
-                _ig_data = self.ig.create(self.vpc_resource)
-                self.ig_id = _ig_data['resource_id']
-                print(_ig_data)  # debug
-            if not self.rt_available:
-                _rt_data = self.rt.create(self.vpc_resource, self.ig_id)
-                self.rt_id = _rt_data['resource_id']
-                self.rt_resource = Resources().rt(self.rt_id)
-        for subnet in self.subnets:
-            subnet = Subnet(
-                name=subnet.get('name', ''),
-                state=subnet.get('state', ''),
-                dry_run=subnet.get('dry_run', ''),
-                subnet_cidr=subnet.get('cidr', '')
-            )
-
-            data = subnet.create(self.vpc_resource, self.rt_resource)
-            print(data)
-
+        if not self._rt_data['available']:
+            self._rt_data = self._rt.create(self.vpc_resource, self.ig_id)
+            print(self._rt_data['message'])
+            if self._rt_data['status']:
+                self.rt_resource = self._rt_data['resource']
+                self.rt_id = self._rt_data['resource_id']
 
 def runner(*args, **kwargs):
     for _vdata in kwargs['vpc']:
         master = Master(**_vdata)
-        master.availability()
-        master.create()
+        master.launch()
 
 
 def run():

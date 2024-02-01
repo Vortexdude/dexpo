@@ -1,6 +1,13 @@
 from ..vpc import Base, BaseAbstractmethod
 from devops.models.vpc import ResourceValidationResponseModel, ResourceCreationResponseModel
 
+"""
+The response* model used to send the data as per the required flied
+so add the necessary filed in the response model to kep the work efficient
+try to check the model if needed and also add the validation method and message
+
+"""
+
 
 class Vpc(Base, BaseAbstractmethod):
 
@@ -16,7 +23,6 @@ class Vpc(Base, BaseAbstractmethod):
         self.vpc_available = False
 
     def validate(self):
-
         """Check the availability of the vpc with certain parameter like cidr, vpc_id"""
 
         if self.vpc_id:
@@ -47,12 +53,17 @@ class Vpc(Base, BaseAbstractmethod):
                 self.vpc_id = response['Vpcs'][0]['VpcId']
                 self.vpc_resource = self.resource.Vpc(self.vpc_id)
             self.vpc_available = True
-            print("VPC Available")
+            message = "Vpc is available"
 
         else:
-            print("VPC Not Available")
+            message = "Vpc is not available"
 
-        return ResourceValidationResponseModel(available=self.vpc_available, id=self.vpc_id).model_dump()
+        return ResourceValidationResponseModel(
+            available=self.vpc_available,
+            id=self.vpc_id,
+            resource=self.vpc_resource,
+            message=message
+        ).model_dump()
 
     def create(self):
         """launch the vpc if the vpc not available"""
@@ -65,12 +76,7 @@ class Vpc(Base, BaseAbstractmethod):
                 self.vpc_resource = self.resource.Vpc(self.vpc_id)
                 self._wait_until_available(self.resource.Vpc(self.vpc_id), "VPC")
                 print(f"VPC {self.vpc_name} Attaching name to the VPC")
-                self.vpc_resource.create_tags(
-                    Tags=[{
-                        "Key": "Name",
-                        "Value": self.vpc_name
-                    }]
-                )
+                self._add_tags(self.vpc_name)  # adding name to the VPC
                 resource_status = True
                 message = "Vpc Created Successfully!"
 
@@ -80,8 +86,17 @@ class Vpc(Base, BaseAbstractmethod):
         return ResourceCreationResponseModel(
             status=resource_status,
             message=message,
-            resource_id=self.vpc_id
+            resource_id=self.vpc_id,
+            resource=self.vpc_resource
         ).model_dump()
+
+    def _add_tags(self, vpc_name: str):
+        self.vpc_resource.create_tags(
+            Tags=[{
+                "Key": "Name",
+                "Value": vpc_name
+            }]
+        )
 
     def _wait_until_available(self, resource, resource_name):
         """Wait until the resource is available."""

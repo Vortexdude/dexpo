@@ -5,7 +5,8 @@ from devops.models.vpc import ResourceValidationResponseModel, ResourceCreationR
 class InternetGateway(Base, BaseAbstractmethod):
 
     def __init__(self, name=None, state=False, dry_run=False, region=None, *args, **kwargs):
-        self.ig_id = ""
+        self.ig_resource = None
+        self._id = ""
         region = region if region else "ap-south-1"
         super().__init__(region=region)
         self.ig_name = name
@@ -23,12 +24,19 @@ class InternetGateway(Base, BaseAbstractmethod):
 
                 if response['InternetGateways']:
                     self.ig_available = True
-                    self.ig_id = response['InternetGateways'][0]['InternetGatewayId']
-                    print("IG Available")
+                    self._id = response['InternetGateways'][0]['InternetGatewayId']
+                    self.ig_resource = self.resource.InternetGateway(self._id)
+                    message = "Internet Gateway is Available"
                 else:
-                    print("IG Not Available")
+                    message = "Internet Gateway is not Available"
 
-                return ResourceValidationResponseModel(available=self.ig_available, id=self.ig_id).model_dump()
+                return ResourceValidationResponseModel(
+                    available=self.ig_available,
+                    id=self._id,
+                    resource=self.ig_resource,
+                    message=message
+
+                ).model_dump()
 
         except Exception as e:
             print(f"Something went wrong {e}")
@@ -44,12 +52,12 @@ class InternetGateway(Base, BaseAbstractmethod):
             }]
         )
         if response['InternetGateway']:
-            print("Internet Gateway Created Successfully!")
-            _ig = response['InternetGateway']['InternetGatewayId']
-            self.ig_id = _ig
+            # print("Internet Gateway Created Successfully!")
+            self._id = response['InternetGateway']['InternetGatewayId']
+            self.ig_resource = self.resource.InternetGateway(self._id)
             if vpc_resource:
-                vpc_resource.attach_internet_gateway(InternetGatewayId=self.ig_id)
-                print(f"Internet gateway {self.ig_name} attached to VPC successfully!")
+                vpc_resource.attach_internet_gateway(InternetGatewayId=self._id)
+                # print(f"Internet gateway {self.ig_name} attached to VPC successfully!")
 
             else:
                 print("Unknown VPC resource while launching the Internet gateway")
@@ -62,7 +70,8 @@ class InternetGateway(Base, BaseAbstractmethod):
         return ResourceCreationResponseModel(
             status=resource_status,
             message=message,
-            resource_id=self.ig_id
+            resource_id=self._id,
+            resource=self.ig_resource
         ).model_dump()
 
     def delete(self):

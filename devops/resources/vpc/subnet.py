@@ -1,6 +1,6 @@
 from devops.resources.vpc import Base, BaseAbstractmethod
 from devops.models.vpc import ResourceCreationResponseModel, ResourceValidationResponseModel
-
+from devops.resources.vpc import ClientError
 
 class Subnet(Base, BaseAbstractmethod):
 
@@ -14,44 +14,68 @@ class Subnet(Base, BaseAbstractmethod):
         self.zone = zone
         self.subnet_cidr = subnet_cidr
 
-    def validate(self):
-        if self.vpc_id:
+    def validate(self, vpc_id: str):
+        available = False
+        if vpc_id:
             response = self.client.describe_subnets(
                 Filters=[
                     {
                         'Name': self.name,
                         'Values': [
-                            self.vpc_id,
+                            vpc_id,
                         ],
                     },
                 ],
             )
-            return response
+
+            if response:
+                available = True
+                print("Subnet Available")
+            else:
+                available = False
+                print("Subnet Not Available")
+
+        available = False
+        print("Vpc not available so subnet is also not there")
+        return ResourceValidationResponseModel(available=available, id="unknown").model_dump()
 
     def create(self, vpc_resource, rt_resouce):
+        status = False
+        message = ''
+
         if not vpc_resource and not rt_resouce:
-            return
-        if self.state == 'available':
-            subnet = vpc_resource.create_subnet(
-                CidrBlock=self.subnet_cidr,
-                AvailabilityZone=f"{self.region}{self.zone}"
-            )
+            status = False
+            message = 'Error with VPC resource or route table resource'
 
-            self.sb_id = subnet.id
-            subnet.create_tags(
-                Tags=[{
-                    "Key": "Name",
-                    "Value": self.name
-                }]
-            )
+        if self.state == 'present':
+            try:
+                subnet = vpc_resource.create_subnet(
+                    CidrBlock=self.subnet_cidr,
+                    AvailabilityZone=f"{self.region}{self.zone}"
+                )
 
-            rt_resouce.associate_with_subnet(SubnetId=subnet.id)
+                self.sb_id = subnet.id
+                subnet.create_tags(
+                    Tags=[{
+                        "Key": "Name",
+                        "Value": self.name
+                    }]
+                )
 
-            return ResourceCreationResponseModel(
-                status=True,
-                message="Subnet Created Successfully!",
-                resource_id=self.sb_id
-            ).model_dump()
+                rt_resouce.associate_with_subnet(SubnetId=subnet.id)
+                status = True
+                message = "Subnet created successfully!"
+
+            except ClientError as e:
+                if e.response['Error']['Code'] == 'InvalidSubnet.Conflict':
+                    message = 'Subnet already exist'
+                    status = False
+
+        return ResourceCreationResponseModel(
+            status=status,
+            message=message,
+            resource_id=self.sb_id
+        ).model_dump()
 
     def delete(self):
         pass
