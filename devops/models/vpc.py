@@ -4,8 +4,8 @@ from typing import Optional, Any
 
 class ResourceValidationResponseModel(BaseModel):
     available: bool
-    id: Optional[str]
-    resource: Optional[Any]
+    id: Optional[str] | Optional[list]
+    resource: Optional[Any] | Optional[list]
     message: str
 
 

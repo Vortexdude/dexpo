@@ -26,9 +26,9 @@ class InternetGateway(Base, BaseAbstractmethod):
                     self.ig_available = True
                     self._id = response['InternetGateways'][0]['InternetGatewayId']
                     self.ig_resource = self.resource.InternetGateway(self._id)
-                    message = "Internet Gateway is Available"
+                    message = f"Internet {self.ig_name} Gateway is already exists"
                 else:
-                    message = "Internet Gateway is not Available"
+                    message = f"Internet {self.ig_name} Gateway is not Available"
 
                 return ResourceValidationResponseModel(
                     available=self.ig_available,
@@ -65,7 +65,7 @@ class InternetGateway(Base, BaseAbstractmethod):
             print("There is an error while creating the InternetGateway")
 
         resource_status = True
-        message = "Resource Launched successfully!"
+        message = f"Internet Gateway {self.ig_name} Created Successfully!"
 
         return ResourceCreationResponseModel(
             status=resource_status,

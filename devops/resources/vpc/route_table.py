@@ -25,9 +25,9 @@ class RouteTable(Base):
                 self.rt_available = True
                 self.rt_id = response['RouteTables'][0]['RouteTableId']
                 self.rt_resource = self.resource.RouteTable(self.rt_id)
-                message = "Route Table is available"
+                message = f"Route Table {self.name} is already exists"
             else:
-                message = "Route Table is not available"
+                message = f"Route Table {self.name} is not available"
 
             return ResourceValidationResponseModel(
                 available=self.rt_available,
@@ -56,14 +56,14 @@ class RouteTable(Base):
                         "Value": self.name
                     }])
 
-                    message = "route table created successfully!"
+                    message = f"route table {self.name} created successfully!"
                     status = True
                     self.rt_resource = self.resource.RouteTable(self.rt_id)
                 else:
-                    message = "Please provide the internet_gateway_id"
+                    message = "Invalid internet_gateway_id. rt-63"
                     status = False
             else:
-                print("Unknown vpc resource while Creating RouteTable")
+                print("Invalid vpc_resource. rt-66")
 
             return ResourceCreationResponseModel(
                 status=status,

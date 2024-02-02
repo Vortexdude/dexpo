@@ -104,6 +104,26 @@ class Master(BaseVpcInit, Base):
             self.rt_resource = None
             self.rt_id = ""
 
+        """Validating the Subnets"""
+
+        self.subnets_data = []
+        for subnet in self.subnets:
+            self._sb = Subnet(
+                name=subnet['name'],
+                state=subnet['state'],
+                dry_run=subnet['dry_run'],
+                subnet_cidr=subnet['cidr'],
+            )
+            _sb_data = self._sb.validate()
+            print(_sb_data['message'])
+            if _sb_data['available']:
+                sb_id = _sb_data['id']
+                sb_resource = _sb_data['resource']
+            else:
+                sb_resource = None
+                sb_id = ""
+            self.subnets_data.append({subnet['name']: [sb_resource, sb_id], "handler": self._sb})
+
     def launch(self):
         if not self._vpc_data['available']:
             self._vpc_data = self._vpc.create()
@@ -125,6 +145,17 @@ class Master(BaseVpcInit, Base):
             if self._rt_data['status']:
                 self.rt_resource = self._rt_data['resource']
                 self.rt_id = self._rt_data['resource_id']
+
+        # going through the subnet validate data loop (form validate method) that contains
+        # the status and resource of the subnet
+        # then check availability of the subnet is there or not if not then create it
+        _tmp_data = []
+        for i in range(len(self.subnets_data)):
+            if not self.subnets_data[i][self.subnets[i]['name']][0]:
+                sb_data = self.subnets_data[i]["handler"].create(self.vpc_resource, self.rt_resource)
+                print(sb_data['message'])
+                _tmp_data.append({self.subnets[i]['name']: [sb_data['resource'], sb_data['resource_id']]})
+
 
 def runner(*args, **kwargs):
     for _vdata in kwargs['vpc']:

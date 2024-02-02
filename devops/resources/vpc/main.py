@@ -53,10 +53,10 @@ class Vpc(Base, BaseAbstractmethod):
                 self.vpc_id = response['Vpcs'][0]['VpcId']
                 self.vpc_resource = self.resource.Vpc(self.vpc_id)
             self.vpc_available = True
-            message = "Vpc is available"
+            message = f"Vpc {self.vpc_name} is already exists"
 
         else:
-            message = "Vpc is not available"
+            message = f"Vpc {self.vpc_name} is not available"
 
         return ResourceValidationResponseModel(
             available=self.vpc_available,
@@ -78,7 +78,7 @@ class Vpc(Base, BaseAbstractmethod):
                 print(f"VPC {self.vpc_name} Attaching name to the VPC")
                 self._add_tags(self.vpc_name)  # adding name to the VPC
                 resource_status = True
-                message = "Vpc Created Successfully!"
+                message = f"Vpc {self.vpc_name} Created Successfully!"
 
         except Exception as e:
             print(f"There are some error in launching the vpc {e}")

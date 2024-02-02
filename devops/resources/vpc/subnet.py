@@ -14,32 +14,42 @@ class Subnet(Base, BaseAbstractmethod):
         self.zone = zone
         self.subnet_cidr = subnet_cidr
 
-    def validate(self, vpc_id: str):
+    def validate(self):
+        message = ''
+        _resources = []
+        _ids = []
         available = False
-        if vpc_id:
-            response = self.client.describe_subnets(
-                Filters=[
-                    {
-                        'Name': self.name,
-                        'Values': [
-                            vpc_id,
-                        ],
-                    },
-                ],
-            )
+        response = self.client.describe_subnets(
+            Filters=[
+                {
+                    'Name': "tag:Name",
+                    'Values': [
+                        self.name,
+                    ],
+                },
+            ],
+        )
 
-            if response:
-                available = True
-                print("Subnet Available")
-            else:
-                available = False
-                print("Subnet Not Available")
+        if response['Subnets']:
+            for subnet in response['Subnets']:
+                sb_id = subnet['SubnetId']
+                _ids.append(sb_id)
+                _resources.append(self.resource.Subnet(sb_id))
+            available = True
+            message = f"Subnet {self.name} is already exists"
+        else:
+            available = False
+            message = f"Subnet {self.name} is not available"
 
-        available = False
-        print("Vpc not available so subnet is also not there")
-        return ResourceValidationResponseModel(available=available, id="unknown").model_dump()
+        return ResourceValidationResponseModel(
+            available=available,
+            id=_ids,
+            message=message,
+            resource=_resources
+        ).model_dump()
 
     def create(self, vpc_resource, rt_resouce):
+        _resource = None
         status = False
         message = ''
 
@@ -64,17 +74,19 @@ class Subnet(Base, BaseAbstractmethod):
 
                 rt_resouce.associate_with_subnet(SubnetId=subnet.id)
                 status = True
-                message = "Subnet created successfully!"
+                message = f"Subnet {self.name} created successfully!"
+                _resource = self.resource.Subnet(subnet.id)
 
             except ClientError as e:
                 if e.response['Error']['Code'] == 'InvalidSubnet.Conflict':
-                    message = 'Subnet already exist'
+                    message = f"Subnet {self.name} already exist"
                     status = False
 
         return ResourceCreationResponseModel(
             status=status,
             message=message,
-            resource_id=self.sb_id
+            resource_id=self.sb_id,
+            resource=_resource
         ).model_dump()
 
     def delete(self):
