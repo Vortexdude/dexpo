@@ -24,7 +24,8 @@ Boto3 Clients -
 5. [Attach Internet Gateway](https://boto3.amazonaws.com/v1/documentation/api/1.26.86/reference/services/ec2/vpc/attach_internet_gateway.html)
 6. [Create Security Group](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2/client/create_security_group.html)
 7. [Security Group Ingress](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2/client/authorize_security_group_ingress.html)
-
+8. [Describe Security Group](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2/client/describe_security_groups.html)
+9. [Create Security Group](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2/client/create_security_group.html)
 
 Inspirations - 
 1. [ref](https://gist.github.com/arjunmohnot/314013dbd3b7341ffa3c475dfcbb2b22#file-automateaws-py-L56)

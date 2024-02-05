@@ -20,14 +20,6 @@ class Base:
         self.resource = boto3.resource("ec2", region)
         self.vpc_resource = None
 
-    @staticmethod
-    def client(region: str):
-        return boto3.client("ec2", region)
-
-    @staticmethod
-    def resource(region: str):
-        return boto3.resource("ec2", region)
-
 class Resources(Base):
     def __init__(self):
         super().__init__(region='ap-south-1')

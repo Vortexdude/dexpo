@@ -5,6 +5,7 @@ from devops.resources.vpc.main import Vpc
 from devops.resources.vpc.route_table import RouteTable
 from devops.resources.vpc.intenet_gateway import InternetGateway
 from devops.resources.vpc.subnet import Subnet
+from devops.resources.vpc.security_group import SecurityGroup
 from devops.utils import Utils
 
 # convert the json into dictionary
@@ -52,12 +53,14 @@ class Master(BaseVpcInit, Base):
             route_table: dict = None,
             internet_gateway: dict = None,
             subnets: list[dict] = None,
+            security_groups: list[dict] = None,
             *args, **kwargs):
 
         super().__init__()
         super(Base, self).__init__()
         self._subnets_availability = []
         self.subnets = subnets
+        self.security_groups = security_groups
 
         """Validating the VPC"""
 
@@ -124,6 +127,20 @@ class Master(BaseVpcInit, Base):
                 sb_id = ""
             self.subnets_data.append({subnet['name']: [sb_resource, sb_id], "handler": self._sb})
 
+        """Validating Security Group"""
+        self.security_group_data = []
+        for security_group in self.security_groups:
+            self._sg = SecurityGroup(**security_group)
+            _sg_data = self._sg.validate()
+            print(_sg_data['message'])
+            if _sg_data['available']:
+                sg_id = _sg_data['id']
+                sg_resource = _sg_data['resource']
+            else:
+                sg_id = _sg_data['id']
+                sg_resource = _sg_data['resource']
+            self.security_group_data.append({security_group['name']: [sg_resource, sg_id], "handler": self._sg})
+
     def launch(self):
         if not self._vpc_data['available']:
             self._vpc_data = self._vpc.create()
@@ -155,6 +172,11 @@ class Master(BaseVpcInit, Base):
                 sb_data = self.subnets_data[i]["handler"].create(self.vpc_resource, self.rt_resource)
                 print(sb_data['message'])
                 _tmp_data.append({self.subnets[i]['name']: [sb_data['resource'], sb_data['resource_id']]})
+
+        for i in range(len(self.security_group_data)):
+            if not self.security_group_data[i][self.security_groups[i]['name']][0]:
+                sg_data = self.security_group_data[i]["handler"].create(self.vpc_id)
+                print(sg_data['message'])
 
 
 def runner(*args, **kwargs):
