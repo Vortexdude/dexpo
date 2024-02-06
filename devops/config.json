@@ -1,0 +1,60 @@
+{
+    "vpc": [
+        {
+            "name": "boto3-testing",
+            "state": "present",
+            "dry_run": "True",
+            "region": "ap-south-1",
+            "cidr_block": "192.168.0.0/16",
+            "route_table": {
+                "name": "boto3-testing-rt",
+                "state": "present",
+                "DestinationCidrBlock": "0.0.0.0/0"
+            },
+            "internet_gateway": {
+                "name": "boto3-testing-ig",
+                "state": "present"
+            },
+            "subnets": [
+                {
+                    "name": "boto3-testing-sn",
+                    "state": "present",
+                    "cidr": "192.168.1.0/24",
+                    "zone": "a"
+                },
+                {
+                    "name": "boto3-testing-sn-private",
+                    "state": "present",
+                    "cidr": "192.168.2.0/24",
+                    "zone": "b"
+                }
+            ],
+            "security_groups": [
+                {
+                    "name": "boto3-testing-sg",
+                    "description": "For Boto3-testing",
+                    "state": "present",
+                    "permissions": [
+                        {
+                        "FromPort": 22,
+                        "IpProtocol": "tcp",
+                        "IpRanges": [
+                            {
+                                "CidrIp": "0.0.0.0/0",
+                                "Description": "SSH Access"
+                            }
+                        ],
+                        "ToPort": 22
+                }
+                    ]
+
+                }
+            ]
+        }
+    ],
+    "ec2": [
+        {
+            
+        }
+    ]
+}
