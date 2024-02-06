@@ -1,0 +1,7 @@
+region=ap-south-1
+appname=boto3-sandbox
+vpc_name=boto3-testing-vpc
+#vpc_id=vpc-08a62c4b70250463b
+vpc_cidr=192.168.0.0/16
+route_table_name=boto3-testing-rt
+internet_gateway_name=boto3-testing-ig
