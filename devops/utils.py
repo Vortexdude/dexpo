@@ -1,7 +1,7 @@
 import logging
 import json
 import pathlib
-
+import argparse
 
 class DexLogger:
     def __init__(self):
@@ -30,3 +30,31 @@ class Utils:
         with open(file) as JSON:
             json_dict = json.load(JSON)
         return json_dict
+
+
+class Parser(argparse.ArgumentParser):
+    def __init__(self):
+        description = """
+        Dexpo repository is used to create cloud infrastructure in AWS
+        
+        """
+        epilog = """Print At the END"""
+        super().__init__(
+            description=description,
+            epilog=epilog
+        )
+        self.add_all_arguments()
+
+    def add_all_arguments(self):
+        self.add_argument(
+            'action',
+            nargs="?",
+            choices=["apply", "destroy"],
+            help='Do some homework'
+        )
+        if not self.parse_args().action:
+            return self.print_help()
+
+    @property
+    def args(self):
+        return super().parse_args()

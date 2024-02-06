@@ -1,10 +1,10 @@
 from devops.resources.vpc import Base, BaseAbstractmethod
-from devops.models.vpc import ResourceValidationResponseModel, ResourceCreationResponseModel
-
+from devops.models.vpc import ResourceValidationResponseModel, ResourceCreationResponseModel, DeleteResourceResponseModel
+import boto3.exceptions
 
 class InternetGateway(Base, BaseAbstractmethod):
 
-    def __init__(self, name=None, state=False, dry_run=False, region=None, *args, **kwargs):
+    def __init__(self, name=None, state=None, dry_run=False, region=None, *args, **kwargs):
         self.ig_resource = None
         self._id = ""
         region = region if region else "ap-south-1"
@@ -74,9 +74,34 @@ class InternetGateway(Base, BaseAbstractmethod):
             resource=self.ig_resource
         ).model_dump()
 
-    def delete(self):
-        pass
+    def delete(self, vpc_resource, vpc_id: str):
+        """ Detach and delete the internet-gateway """
+        message = ''
+        status = False
+        if vpc_resource and vpc_id:
+            internet_gateways = vpc_resource.internet_gateways.all()
+            if internet_gateways:
+                for internet_gateway in internet_gateways:
+                    try:
+                        print("Detaching and Removing igw-id: ", internet_gateway.id)
+                        internet_gateway.detach_from_vpc(
+                            VpcId=vpc_id
+                        )
+                        internet_gateway.delete(
+                            # DryRun=True
+                        )
+                        message = "Internet Gateway Deleted Successfully"
+                        status = True
+                    except boto3.exceptions.Boto3Error as e:
+                        print(e)
+        else:
+            message = 'Internet gateway doesnt exist'
 
+        return DeleteResourceResponseModel(
+            status=status,
+            message=message,
+            resource='internet_gateway'
+        ).model_dump()
 
 
 

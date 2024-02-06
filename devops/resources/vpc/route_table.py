@@ -1,6 +1,7 @@
-from devops.models.vpc import ResourceValidationResponseModel, ResourceCreationResponseModel
+from devops.models.vpc import ResourceValidationResponseModel, ResourceCreationResponseModel, \
+    DeleteResourceResponseModel
 from devops.resources.vpc import Base
-
+import boto3.exceptions
 
 class RouteTable(Base):
 
@@ -72,16 +73,22 @@ class RouteTable(Base):
                 resource=self.rt_resource
             ).model_dump()
 
-    def delete(self):
-        pass
+    def delete(self, rt_resource):
+        status = False
+        message = ''
+        if rt_resource:
+            try:
+                rt_resource.delete()
+                status = True
+                message = 'Route Table deleted successfully'
+            except boto3.exceptions.Boto3Error as e:
+                print(e)
+        else:
+            status = False
+            message = 'Route Table doesnt exist'
 
-
-
-
-
-
-
-
-
-
-
+        return DeleteResourceResponseModel(
+            status=status,
+            message=message,
+            resource='route_table'
+        ).model_dump()

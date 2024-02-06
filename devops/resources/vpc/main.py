@@ -1,5 +1,7 @@
 from ..vpc import Base, BaseAbstractmethod
-from devops.models.vpc import ResourceValidationResponseModel, ResourceCreationResponseModel
+from devops.models.vpc import ResourceValidationResponseModel, ResourceCreationResponseModel, \
+    DeleteResourceResponseModel
+import boto3.exceptions
 
 """
 The response* model used to send the data as per the required flied
@@ -105,7 +107,25 @@ class Vpc(Base, BaseAbstractmethod):
         print(f"{resource_name} {self.vpc_name} is available.")
 
     def delete(self):
-        pass
+        """ Delete the VPC """
+        status = False
+        message = ""
+        if self.vpc_resource:
+            try:
+                self.vpc_resource.delete()
+                status = True
+                message = "Vpc Deleted successfully"
+            except boto3.exceptions.Boto3Error as e:
+                print(e)
+        else:
+            status = False
+            message = "Vpc Doesnt Exist"
+
+        return DeleteResourceResponseModel(
+            status=status,
+            message=message,
+            resource='vpc'
+        ).model_dump()
 
 
 

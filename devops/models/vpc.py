@@ -14,3 +14,9 @@ class ResourceCreationResponseModel(BaseModel):
     message: str
     resource_id: Optional[str]
     resource: Optional[Any]
+
+
+class DeleteResourceResponseModel(BaseModel):
+    status: bool
+    resource: str
+    message: str

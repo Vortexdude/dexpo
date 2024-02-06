@@ -1,24 +1,24 @@
 from devops.resources.vpc import Base, BaseAbstractmethod
-from devops.models.vpc import ResourceCreationResponseModel, ResourceValidationResponseModel
+from devops.models.vpc import ResourceCreationResponseModel, ResourceValidationResponseModel, \
+    DeleteResourceResponseModel
 from devops.resources.vpc import ClientError
-
+import boto3.exceptions
 
 class Subnet(Base, BaseAbstractmethod):
 
-    def __init__(self, name=None, state=None, dry_run=False, subnet_cidr=None, region='ap-south-1', zone='a'):
+    def __init__(self, name=None, state=None, dry_run=False, cidr=None, region='ap-south-1', zone='a'):
         super().__init__(region=region)
+        self.sb_resource = None
         self.vpc_id = None
         self.sb_id = None
         self.name = name
         self.state = state
         self.dry_run = dry_run
         self.zone = zone
-        self.subnet_cidr = subnet_cidr
+        self.cidr = cidr
 
     def validate(self):
         message = ''
-        _resources = []
-        _ids = []
         available = False
         response = self.client.describe_subnets(
             Filters=[
@@ -34,8 +34,8 @@ class Subnet(Base, BaseAbstractmethod):
         if response['Subnets']:
             for subnet in response['Subnets']:
                 sb_id = subnet['SubnetId']
-                _ids.append(sb_id)
-                _resources.append(self.resource.Subnet(sb_id))
+                self.sb_id = sb_id
+                self.sb_resource = self.resource.Subnet(self.sb_id)
             available = True
             message = f"Subnet {self.name} is already exists"
         else:
@@ -44,9 +44,9 @@ class Subnet(Base, BaseAbstractmethod):
 
         return ResourceValidationResponseModel(
             available=available,
-            id=_ids,
+            id=self.sb_id,
             message=message,
-            resource=_resources
+            resource=self.sb_resource
         ).model_dump()
 
     def create(self, vpc_resource, rt_resouce):
@@ -61,7 +61,7 @@ class Subnet(Base, BaseAbstractmethod):
         if self.state == 'present':
             try:
                 subnet = vpc_resource.create_subnet(
-                    CidrBlock=self.subnet_cidr,
+                    CidrBlock=self.cidr,
                     AvailabilityZone=f"{self.region}{self.zone}"
                 )
 
@@ -90,5 +90,24 @@ class Subnet(Base, BaseAbstractmethod):
             resource=_resource
         ).model_dump()
 
-    def delete(self):
-        pass
+    def delete(self, sb_resource):
+        """ Delete the subnets """
+        status = False
+        message = ''
+        if sb_resource:
+            try:
+                if sb_resource:
+                    print(f"Removing sub-id with....")
+                    sb_resource.delete()
+                    status = True
+                    message = 'Subnet deleted successfully'
+            except boto3.exceptions.Boto3Error as e:
+                print(e)
+        else:
+            message = 'Subnet doesnt exist'
+
+        return DeleteResourceResponseModel(
+            status=status,
+            message=message,
+            resource='security_group'
+        ).model_dump()
