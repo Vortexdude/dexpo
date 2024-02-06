@@ -9,7 +9,11 @@ Refs Links -
 3. Reading Env variables [Example](https://stackoverflow.com/questions/40216311/reading-in-environment-variables-from-an-environment-file)
 4. Abstract classes [Example](https://stackoverflow.com/questions/42778784/abstract-classes-with-varying-amounts-of-parameters)
 5. Validate VPC Already exist or not [ref](https://stackoverflow.com/questions/47329675/boto3-how-to-check-if-vpc-already-exists-before-creating-it) -
-6. 
+6. Argparse
+   1. [Example1](https://stackoverflow.com/questions/9037828/writing-a-help-for-python-script)
+   2. [Example1](https://stackoverflow.com/questions/7427101/simple-argparse-example-wanted-1-argument-3-results)
+   3. [Example1](https://stackoverflow.com/questions/15754208/how-to-make-argument-optional-in-python-argparse)
+
 
 Boto3 Resources - 
 <br/>
@@ -29,4 +33,3 @@ Boto3 Clients -
 
 Inspirations - 
 1. [ref](https://gist.github.com/arjunmohnot/314013dbd3b7341ffa3c475dfcbb2b22#file-automateaws-py-L56)
-2. 
