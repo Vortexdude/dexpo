@@ -209,8 +209,10 @@ class Master(BaseVpcInit, Base):
 def runner(*args, **kwargs):
     for _vdata in kwargs['vpc']:
         master = Master(**_vdata)
-        master.launch()
-        # master.delete()
+        if COMMAND.lower() == 'apply':
+            master.launch()
+        if COMMAND.lower() == 'destroy':
+            master.delete()
 
 
 def run(command: str):
