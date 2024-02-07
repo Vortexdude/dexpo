@@ -2,6 +2,8 @@ import logging
 import json
 import pathlib
 import argparse
+from enum import Enum
+
 
 class DexLogger:
     def __init__(self):
@@ -58,3 +60,34 @@ class Parser(argparse.ArgumentParser):
     @property
     def args(self):
         return super().parse_args()
+
+
+class DexColors:
+
+    class Color(Enum):
+        DEBUG = '\033[94m'
+        CYAN = '\033[96m'
+        SUCCESS = '\033[92m'
+        WARNING = '\033[93m'
+        ERROR = '\033[91m'
+        INFO = '\033[4m'
+        RESET = '\033[0m'
+
+    def __init__(self):
+        self.header = '\033[95m'
+        self.bold = '\033[1m'
+
+    def dprint(self, color: Color, text: str) -> str:
+        """
+        Apply color to the given text.
+
+        Parameters:
+        - color (Color): The color to apply.
+        - text (str): The text to color.
+
+        Returns:
+        str: The colored text.
+        """
+
+        return f"{color.value}{text}{self.Color.RESET.value}"
+

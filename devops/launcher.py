@@ -1,12 +1,20 @@
-import boto3
 from devops.models.config import RootModel
-from devops.resources.vpc import Base
+from devops.resources import Base
 from devops.resources.vpc.main import Vpc
 from devops.resources.vpc.route_table import RouteTable
 from devops.resources.vpc.intenet_gateway import InternetGateway
 from devops.resources.vpc.subnet import Subnet
 from devops.resources.vpc.security_group import SecurityGroup
-from devops.utils import Utils
+from devops.utils import Utils, DexColors
+from devops.resources.const import _EC2, _VPC, _SUBNET, _ROUTE_TABLE, _SECURITY_GROUP, _INTERNET_GATEWAY
+
+dex_color = DexColors()
+
+DISPLAY_TEXT = """
+    - - {text} - - 
+    name = {name}
+    id   = {id}
+"""
 
 CONFIG_FILE = 'config.json'
 COMMAND = ''
@@ -15,6 +23,7 @@ _json = Utils.read_json(CONFIG_FILE)
 
 # pass the data into the Model fto get the accurate data
 config = RootModel(**_json)
+RESULT = []
 
 
 class BaseVpcInit:
@@ -28,7 +37,7 @@ class BaseVpcInit:
         self.vpc_resource = None
 
 
-class Master(BaseVpcInit, Base):
+class VpcMaster(BaseVpcInit, Base):
     """
     Launch and validate the vpc infrastructure using boto3.
     it inherits some methods and parameters from Availability class that will ensure
@@ -66,11 +75,15 @@ class Master(BaseVpcInit, Base):
         self.internet_gateway = internet_gateway
         self.route_table = route_table
         self.state = state
+        self.name = name
         """Validating the VPC"""
 
         self._vpc = Vpc(vpc_name=name, state=state, dry_run=dry_run, vpc_cidr=cidr_block, region=region)
         self._vpc_data = self._vpc.validate()
-        print(self._vpc_data['message'])
+        self._vpc_data['name'] = self.name
+        self._vpc_data['type'] = "vpc"
+        RESULT.append(self._vpc_data)
+
         if self._vpc_data['available']:
             self.vpc_id = self._vpc_data['id']
             self.vpc_resource = self._vpc_data['resource']
@@ -87,7 +100,10 @@ class Master(BaseVpcInit, Base):
             region=internet_gateway.get('region', '')
         )
         self._ig_data = self._ig.validate()
-        print(self._ig_data['message'])
+        self._ig_data['name'] = self.internet_gateway['name']
+        self._ig_data['type'] = "internet gateway"
+        RESULT.append(self._ig_data)
+
         if self._ig_data['available']:
             self.ig_id = self._ig_data['id']
             self.ig_resource = self._ig_data['resource']
@@ -103,7 +119,10 @@ class Master(BaseVpcInit, Base):
             dry_run=route_table.get('dry_run', '')
         )
         self._rt_data = self._rt.validate()
-        print(self._rt_data['message'])
+        self._rt_data['name'] = self.route_table['name']
+        self._rt_data['type'] = 'route table'
+        RESULT.append(self._rt_data)
+
         if self._rt_data['available']:
             self.rt_id = self._rt_data['id']
             self.rt_resource = self._rt_data['resource']
@@ -117,30 +136,35 @@ class Master(BaseVpcInit, Base):
         for subnet in self.subnets:
             self._sb = Subnet(**subnet)
             _sb_data = self._sb.validate()
-            print(_sb_data['message'])
+
             if _sb_data['available']:
                 sb_id = _sb_data['id']
                 sb_resource = _sb_data['resource']
             else:
                 sb_resource = None
                 sb_id = ""
-            self.subnets_data.append({subnet['name']: [sb_resource, sb_id], "handler": self._sb})
+            self.subnets_data.append({subnet['name']: [sb_resource, sb_id, 'subnet'], "handler": self._sb})
+
+        RESULT.append(self.subnets_data)
 
         """Validating Security Group"""
         self.security_group_data = []
         for security_group in self.security_groups:
             self._sg = SecurityGroup(**security_group)
             _sg_data = self._sg.validate()
-            print(_sg_data['message'])
+
             if _sg_data['available']:
                 sg_id = _sg_data['id']
                 sg_resource = _sg_data['resource']
             else:
                 sg_id = _sg_data['id']
                 sg_resource = _sg_data['resource']
-            self.security_group_data.append({security_group['name']: [sg_resource, sg_id], "handler": self._sg})
+            self.security_group_data.append({security_group['name']: [sg_resource, sg_id, 'security group'], "handler": self._sg})
+
+        RESULT.append(self.security_group_data)
 
     def launch(self):
+
         if not self._vpc_data['available'] and self.state == "present":
             self._vpc_data = self._vpc.create()
             print(self._vpc_data['message'])
@@ -189,7 +213,8 @@ class Master(BaseVpcInit, Base):
 
         """ Delete the subnets """
         for i in range(len(self.subnets_data)):
-            sb_delete_response = self.subnets_data[i]["handler"].delete(self.subnets_data[i][self.subnets[i]['name']][0])
+            sb_delete_response = self.subnets_data[i]["handler"].delete(
+                self.subnets_data[i][self.subnets[i]['name']][0])
             print(sb_delete_response['message'])
 
         """ Delete the Route Tables """
@@ -198,7 +223,8 @@ class Master(BaseVpcInit, Base):
 
         """ Delete the Security Groups """
         for i in range(len(self.security_group_data)):
-            sg_delete_response = self.security_group_data[i]["handler"].delete(self.security_group_data[i][self.security_groups[i]['name']][0])
+            sg_delete_response = self.security_group_data[i]["handler"].delete(
+                self.security_group_data[i][self.security_groups[i]['name']][0])
             print(sg_delete_response['message'])
 
         """ Delete the VPC """
@@ -206,13 +232,137 @@ class Master(BaseVpcInit, Base):
         print(vpc_delete_response['message'])
 
 
+class Ec2Master(Base):
+    def __init__(
+            self,
+            name: str = None,
+            instance_type: str = None,
+            ami: str = None,
+            subnet: str = None,
+            key_file: str = None,
+            region: str = 'ap-south-1',
+            state: str = None,
+            dry_run: bool = False
+
+    ):
+        self.region = region
+        self.name = name
+        self.instance_type = instance_type
+        self.ami = ami
+        self.subnet = subnet
+        self.key_file = key_file
+        self.state = state
+        self.dry_run = dry_run
+        super().__init__(region='ap-south-1')
+
+    def validate(self):
+        pass
+
+    def launch(self):
+        pass
+
+    def delete(self):
+        pass
+
+_tmp_text = ''
+
+
 def runner(*args, **kwargs):
+    global _tmp_text
     for _vdata in kwargs['vpc']:
-        master = Master(**_vdata)
+        vpc_master = VpcMaster(**_vdata)
         if COMMAND.lower() == 'apply':
-            master.launch()
+            for row in RESULT:
+                if isinstance(row, list):
+                    _temp_text = ""
+                    for item in row:
+                        # item = {'boto3-testing-sg': [None, None], 'handler': <devops.resources.vpc.security_group.SecurityGroup object at 0x7f9ccafa5c50>}
+                        resource_name = list(item.keys())[0]
+                        resource_availability = item[resource_name][0]
+                        resource_id = item[resource_name][1]
+                        resource_type: str = item[resource_name][2]
+                        if resource_availability:
+                            continue
+                        if resource_type.lower() == 'subnet':
+                            if _SUBNET not in _temp_text:
+                                _temp_text += _SUBNET
+                            _temp_text += DISPLAY_TEXT.format(
+                                name=resource_name,
+                                id=resource_id if resource_id else "Known after apply",
+                                text="Adding new Subnet"
+                            )
+
+                        if resource_type.lower() == 'security group':
+                            if _SECURITY_GROUP not in _temp_text:
+                                _temp_text += _SECURITY_GROUP
+                            _temp_text += DISPLAY_TEXT.format(
+                                name=resource_name,
+                                id=resource_id if resource_id else "Known after apply",
+                                text="Adding new Security Group"
+                            )
+
+                    print(dex_color.dprint(DexColors.Color.SUCCESS, _temp_text))
+
+                else:
+                    if not row['available']:
+                        _tmp_text = ''
+                        if row['type'] == 'vpc':
+                            _tmp_text += _VPC
+                            _tmp_text += DISPLAY_TEXT.format(
+                                name=vpc_master.name,
+                                id=vpc_master.vpc_id if vpc_master.vpc_id else "Known after apply",
+                                text="Adding new VPC"
+                            )
+
+                        if row['type'].lower() == 'internet gateway':
+                            _tmp_text += _INTERNET_GATEWAY
+                            _tmp_text += DISPLAY_TEXT.format(
+                                name=row['name'],
+                                id=row['id'] if row['id'] else "Known after apply",
+                                text="Adding new Internet Gateway"
+                            )
+
+                        if row['type'].lower() == 'route table':
+                            _tmp_text += _ROUTE_TABLE
+                            _tmp_text += DISPLAY_TEXT.format(
+                                name=row['name'],
+                                id=row['id'] if row['id'] else "Known after apply",
+                                text="Adding new Route Table"
+                            )
+
+                    print(dex_color.dprint(DexColors.Color.SUCCESS, _tmp_text))
+        print(f'___________________')
+        if COMMAND.lower() == 'apply':
+            action = input('Want to Launch .... [Yes/No] ')
+            if action.lower() == 'yes':
+                vpc_master.launch()
+            else:
+                print("Exiting ....")
+
         if COMMAND.lower() == 'destroy':
-            master.delete()
+            action = input('Want to Destroy .... [Yes/No] ')
+            if action.lower() == 'yes':
+                vpc_master.delete()
+            else:
+                print("Exiting ....")
+
+    for ec2_data in kwargs['ec2']:
+
+        return
+        ec2_master = Ec2Master(**ec2_data)
+        if COMMAND.lower() == 'apply':
+            action = input('Want to Launch .... [Yes/No] ')
+            if action.lower() == 'yes':
+                ec2_master.launch()
+            else:
+                print("Exiting ....")
+
+        if COMMAND.lower() == 'destroy':
+            action = input('Want to Destroy .... [Yes/No] ')
+            if action.lower() == 'yes':
+                ec2_master.delete()
+            else:
+                print("Exiting ....")
 
 
 def run(command: str):

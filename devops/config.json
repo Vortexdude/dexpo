@@ -54,7 +54,13 @@
     ],
     "ec2": [
         {
-            
+            "name": "boto3-vm",
+            "state": "present",
+            "instance_type": "t2.micro",
+            "ami": "ami-0a7cf821b91bcccbc",
+            "subnet": "boto3-testing-sn",
+            "key_file": "intelli",
+            "region": "ap-south-1"
         }
     ]
 }

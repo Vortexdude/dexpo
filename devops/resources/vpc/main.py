@@ -1,4 +1,4 @@
-from ..vpc import Base, BaseAbstractmethod
+from devops.resources import Base, BaseAbstractmethod
 from devops.models.vpc import ResourceValidationResponseModel, ResourceCreationResponseModel, \
     DeleteResourceResponseModel
 import boto3.exceptions

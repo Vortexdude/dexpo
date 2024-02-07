@@ -37,6 +37,14 @@ class VpcModel(BaseClass):
     security_groups: Optional[List[SecurityGroup]] = None
 
 
+class Ec2Model(BaseClass):
+    instance_type: str
+    ami: str
+    subnet: str
+    key_file: str
+    region: str
+
+
 class RootModel(BaseModel):
     vpc: List[VpcModel]
-    ec2: Optional[List] = None
+    ec2: List[Ec2Model]

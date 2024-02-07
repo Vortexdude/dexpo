@@ -1,6 +1,6 @@
 from devops.models.vpc import ResourceValidationResponseModel, ResourceCreationResponseModel, \
     DeleteResourceResponseModel
-from devops.resources.vpc import Base
+from devops.resources import Base
 import boto3.exceptions
 
 class RouteTable(Base):

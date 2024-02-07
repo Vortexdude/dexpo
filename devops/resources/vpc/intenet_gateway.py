@@ -1,4 +1,4 @@
-from devops.resources.vpc import Base, BaseAbstractmethod
+from devops.resources import Base, BaseAbstractmethod
 from devops.models.vpc import ResourceValidationResponseModel, ResourceCreationResponseModel, DeleteResourceResponseModel
 import boto3.exceptions
 
@@ -28,7 +28,7 @@ class InternetGateway(Base, BaseAbstractmethod):
                     self.ig_resource = self.resource.InternetGateway(self._id)
                     message = f"Internet {self.ig_name} Gateway is already exists"
                 else:
-                    message = f"Internet {self.ig_name} Gateway is not Available"
+                    message = f"Internet Gateway {self.ig_name} is not Available"
 
                 return ResourceValidationResponseModel(
                     available=self.ig_available,

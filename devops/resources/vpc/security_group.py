@@ -1,6 +1,6 @@
 from devops.models.vpc import ResourceValidationResponseModel, ResourceCreationResponseModel, \
     DeleteResourceResponseModel
-from devops.resources.vpc import Base, BaseAbstractmethod
+from devops.resources import Base, BaseAbstractmethod
 from requests import get
 import boto3.exceptions
 

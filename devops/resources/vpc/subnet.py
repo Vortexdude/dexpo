@@ -1,8 +1,9 @@
-from devops.resources.vpc import Base, BaseAbstractmethod
+from devops.resources import Base, BaseAbstractmethod
 from devops.models.vpc import ResourceCreationResponseModel, ResourceValidationResponseModel, \
     DeleteResourceResponseModel
-from devops.resources.vpc import ClientError
+from devops.resources import ClientError
 import boto3.exceptions
+
 
 class Subnet(Base, BaseAbstractmethod):
 
