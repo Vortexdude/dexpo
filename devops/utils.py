@@ -93,19 +93,17 @@ class DexColors:
         return f"{color.value}{text}{self.Color.RESET.value}"
 
 
-def dex_wrapper(level: str, item: dict):
-    _tmp_text = ''
+def dex_wrapper(level: str, item: dict, _tmp_text):
     dex_colors: DexColors = DexColors()
     resource_name = list(item.keys())[0]
-    resource_availability = item[resource_name][0]
     resource_id = item[resource_name][1]
     resource_type: str = item[resource_name][2].lower()
 
     level_mapping = {
         'debug': dex_colors.Color.DEBUG,
-        'info': dex_colors.Color.DEBUG,
-        'warning': dex_colors.Color.DEBUG,
-        'danger': dex_colors.Color.DEBUG
+        'info': dex_colors.Color.SUCCESS,
+        'warning': dex_colors.Color.WARNING,
+        'danger': dex_colors.Color.ERROR
     }
 
     resource_mapping = {
@@ -121,6 +119,3 @@ def dex_wrapper(level: str, item: dict):
     )
 
     return dex_colors.dprint(level_mapping[level], _tmp_text)
-
-
-

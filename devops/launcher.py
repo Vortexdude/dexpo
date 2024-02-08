@@ -262,7 +262,7 @@ class Ec2Master(Base):
     def delete(self):
         pass
 
-
+from devops.utils import dex_wrapper
 def runner(*args, **kwargs):
     global RESOURCE_COUNT
     for _vdata in kwargs['vpc']:
@@ -270,29 +270,16 @@ def runner(*args, **kwargs):
         if COMMAND.lower() == 'apply':
             for row in RESULT:
                 if isinstance(row, list):
-                    _tmp_text = ""
+                    _display_text = ""
                     for item in row:
                         # item = {'boto3-testing-sg': [None, None, "type"], 'handler': <devops.resources.vpc.security_group.SecurityGroup object at 0x7f9ccafa5c50>}
-                        resource_name = list(item.keys())[0]
-                        resource_availability = item[resource_name][0]
-                        resource_id = item[resource_name][1]
-                        resource_type: str = item[resource_name][2].lower()
-
+                        resource_availability = item[list(item.keys())[0]][0]
                         if resource_availability:  # skip loop when resource available
                             continue
-                        resource_mapping = {
-                            "subnet": (_SUBNET, resource_name, resource_id),
-                            "security_group": (_SECURITY_GROUP, resource_name, resource_id)
-                        }
-                        if _SUBNET not in _tmp_text:  # for removing extra banner
-                            _tmp_text += resource_mapping[resource_type][0]
-                        _tmp_text += DISPLAY_TEXT.format(
-                                name=resource_mapping[resource_type][1],
-                                id=resource_mapping[resource_type][2] if resource_mapping[resource_type][2] else "Known after apply",
-                                text=f"Adding new {resource_type.capitalize()}"
-                            )
 
-                    print(dex_color.dprint(DexColors.Color.SUCCESS, _tmp_text))
+                        _display_text += dex_wrapper('info', item, _display_text)
+
+                    print(_display_text)
 
                 else:
                     if not row['available']:
