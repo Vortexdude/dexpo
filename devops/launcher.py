@@ -6,18 +6,15 @@ from devops.resources.vpc.intenet_gateway import InternetGateway
 from devops.resources.vpc.subnet import Subnet
 from devops.resources.vpc.security_group import SecurityGroup
 from devops.utils import Utils, DexColors
-from devops.resources.const import _EC2, _VPC, _SUBNET, _ROUTE_TABLE, _SECURITY_GROUP, _INTERNET_GATEWAY
+from devops.resources.const import _EC2, _VPC, _SUBNET, _ROUTE_TABLE, _SECURITY_GROUP, _INTERNET_GATEWAY, DISPLAY_TEXT
 
 dex_color = DexColors()
 
-DISPLAY_TEXT = """
-    - - {text} - - 
-    name = {name}
-    id   = {id}
-"""
+
 
 CONFIG_FILE = 'config.json'
 COMMAND = ''
+RESOURCE_COUNT: int = 0
 # convert the json into dictionary
 _json = Utils.read_json(CONFIG_FILE)
 
@@ -101,7 +98,7 @@ class VpcMaster(BaseVpcInit, Base):
         )
         self._ig_data = self._ig.validate()
         self._ig_data['name'] = self.internet_gateway['name']
-        self._ig_data['type'] = "internet gateway"
+        self._ig_data['type'] = "internet_gateway"
         RESULT.append(self._ig_data)
 
         if self._ig_data['available']:
@@ -120,7 +117,7 @@ class VpcMaster(BaseVpcInit, Base):
         )
         self._rt_data = self._rt.validate()
         self._rt_data['name'] = self.route_table['name']
-        self._rt_data['type'] = 'route table'
+        self._rt_data['type'] = 'route_table'
         RESULT.append(self._rt_data)
 
         if self._rt_data['available']:
@@ -159,7 +156,8 @@ class VpcMaster(BaseVpcInit, Base):
             else:
                 sg_id = _sg_data['id']
                 sg_resource = _sg_data['resource']
-            self.security_group_data.append({security_group['name']: [sg_resource, sg_id, 'security group'], "handler": self._sg})
+            self.security_group_data.append(
+                {security_group['name']: [sg_resource, sg_id, 'security_group'], "handler": self._sg})
 
         RESULT.append(self.security_group_data)
 
@@ -264,74 +262,63 @@ class Ec2Master(Base):
     def delete(self):
         pass
 
-_tmp_text = ''
-
 
 def runner(*args, **kwargs):
-    global _tmp_text
+    global RESOURCE_COUNT
     for _vdata in kwargs['vpc']:
         vpc_master = VpcMaster(**_vdata)
         if COMMAND.lower() == 'apply':
             for row in RESULT:
                 if isinstance(row, list):
-                    _temp_text = ""
+                    _tmp_text = ""
                     for item in row:
-                        # item = {'boto3-testing-sg': [None, None], 'handler': <devops.resources.vpc.security_group.SecurityGroup object at 0x7f9ccafa5c50>}
+                        # item = {'boto3-testing-sg': [None, None, "type"], 'handler': <devops.resources.vpc.security_group.SecurityGroup object at 0x7f9ccafa5c50>}
                         resource_name = list(item.keys())[0]
                         resource_availability = item[resource_name][0]
                         resource_id = item[resource_name][1]
-                        resource_type: str = item[resource_name][2]
-                        if resource_availability:
+                        resource_type: str = item[resource_name][2].lower()
+
+                        if resource_availability:  # skip loop when resource available
                             continue
-                        if resource_type.lower() == 'subnet':
-                            if _SUBNET not in _temp_text:
-                                _temp_text += _SUBNET
-                            _temp_text += DISPLAY_TEXT.format(
-                                name=resource_name,
-                                id=resource_id if resource_id else "Known after apply",
-                                text="Adding new Subnet"
-                            )
-
-                        if resource_type.lower() == 'security group':
-                            if _SECURITY_GROUP not in _temp_text:
-                                _temp_text += _SECURITY_GROUP
-                            _temp_text += DISPLAY_TEXT.format(
-                                name=resource_name,
-                                id=resource_id if resource_id else "Known after apply",
-                                text="Adding new Security Group"
-                            )
-
-                    print(dex_color.dprint(DexColors.Color.SUCCESS, _temp_text))
-
-                else:
-                    if not row['available']:
-                        _tmp_text = ''
-                        if row['type'] == 'vpc':
-                            _tmp_text += _VPC
-                            _tmp_text += DISPLAY_TEXT.format(
-                                name=vpc_master.name,
-                                id=vpc_master.vpc_id if vpc_master.vpc_id else "Known after apply",
-                                text="Adding new VPC"
-                            )
-
-                        if row['type'].lower() == 'internet gateway':
-                            _tmp_text += _INTERNET_GATEWAY
-                            _tmp_text += DISPLAY_TEXT.format(
-                                name=row['name'],
-                                id=row['id'] if row['id'] else "Known after apply",
-                                text="Adding new Internet Gateway"
-                            )
-
-                        if row['type'].lower() == 'route table':
-                            _tmp_text += _ROUTE_TABLE
-                            _tmp_text += DISPLAY_TEXT.format(
-                                name=row['name'],
-                                id=row['id'] if row['id'] else "Known after apply",
-                                text="Adding new Route Table"
+                        resource_mapping = {
+                            "subnet": (_SUBNET, resource_name, resource_id),
+                            "security_group": (_SECURITY_GROUP, resource_name, resource_id)
+                        }
+                        if _SUBNET not in _tmp_text:  # for removing extra banner
+                            _tmp_text += resource_mapping[resource_type][0]
+                        _tmp_text += DISPLAY_TEXT.format(
+                                name=resource_mapping[resource_type][1],
+                                id=resource_mapping[resource_type][2] if resource_mapping[resource_type][2] else "Known after apply",
+                                text=f"Adding new {resource_type.capitalize()}"
                             )
 
                     print(dex_color.dprint(DexColors.Color.SUCCESS, _tmp_text))
-        print(f'___________________')
+
+                else:
+                    if not row['available']:
+                        RESOURCE_COUNT += 1
+                        resource_type = row['type'].lower()
+                        _tmp_text = ''
+                        resource_mapping = {
+                            "vpc": (_VPC, vpc_master.name, vpc_master.vpc_id),
+                            "route_table": (_ROUTE_TABLE, row['name'], row['id']),
+                            "internet_gateway": (_INTERNET_GATEWAY, row['name'], row['id'])
+                        }
+                        _tmp_text += resource_mapping[resource_type][0]
+                        _tmp_text += DISPLAY_TEXT.format(
+                            name=resource_mapping[resource_type][1],
+                            id=resource_mapping[resource_type][2] if resource_mapping[resource_type][
+                                2] else "Known after apply",
+                            text=f"Adding new {resource_type.capitalize()}"
+                        )
+
+                        print(dex_color.dprint(DexColors.Color.SUCCESS, _tmp_text))
+
+        # if RESOURCE_COUNT <= 0:
+        #     print(f'Nothing to do with the Infrastructure')
+        #     return
+        # print(f'Going to Launch {RESOURCE_COUNT} Resources')
+
         if COMMAND.lower() == 'apply':
             action = input('Want to Launch .... [Yes/No] ')
             if action.lower() == 'yes':

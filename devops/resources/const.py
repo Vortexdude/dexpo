@@ -54,3 +54,9 @@ _EC2 = r"""
 /_____/\____//____/ 
 
 """
+
+DISPLAY_TEXT = """
+    - - {text} - - 
+    name = {name}
+    id   = {id}
+"""

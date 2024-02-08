@@ -3,6 +3,7 @@ import json
 import pathlib
 import argparse
 from enum import Enum
+from devops.resources.const import DISPLAY_TEXT , _SUBNET, _ROUTE_TABLE, _SECURITY_GROUP, _INTERNET_GATEWAY, _VPC, _EC2
 
 
 class DexLogger:
@@ -90,4 +91,36 @@ class DexColors:
         """
 
         return f"{color.value}{text}{self.Color.RESET.value}"
+
+
+def dex_wrapper(level: str, item: dict):
+    _tmp_text = ''
+    dex_colors: DexColors = DexColors()
+    resource_name = list(item.keys())[0]
+    resource_availability = item[resource_name][0]
+    resource_id = item[resource_name][1]
+    resource_type: str = item[resource_name][2].lower()
+
+    level_mapping = {
+        'debug': dex_colors.Color.DEBUG,
+        'info': dex_colors.Color.DEBUG,
+        'warning': dex_colors.Color.DEBUG,
+        'danger': dex_colors.Color.DEBUG
+    }
+
+    resource_mapping = {
+        "subnet": (_SUBNET, resource_name, resource_id),
+        "security_group": (_SECURITY_GROUP, resource_name, resource_id)
+    }
+    if _SUBNET not in _tmp_text:  # for removing extra banner
+        _tmp_text += resource_mapping[resource_type][0]
+    _tmp_text += DISPLAY_TEXT.format(
+        name=resource_mapping[resource_type][1],
+        id=resource_mapping[resource_type][2] if resource_mapping[resource_type][2] else "Known after apply",
+        text=f"Adding new {resource_type.capitalize()}"
+    )
+
+    return dex_colors.dprint(level_mapping[level], _tmp_text)
+
+
 
