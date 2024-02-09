@@ -22,7 +22,7 @@ class Vpc(Base, BaseAbstractmethod):
         self.cidr_block = cidr_block
         self.dry_run = dry_run
         self.filters = []
-        self.vpc_available = False
+        self.availability = False
 
     def validate(self):
         """Check the availability of the vpc with certain parameter like cidr, vpc_id"""
@@ -54,11 +54,11 @@ class Vpc(Base, BaseAbstractmethod):
             if not self.id:
                 self.id = response['Vpcs'][0]['VpcId']
                 self.vpc_resource = self.resource.Vpc(self.id)
-            self.vpc_available = True
+            self.availability = True
 
     def to_dict(self, prop):
         return ResourceValidationResponseModel(
-            available=self.vpc_available,
+            available=self.availability,
             id=self.id,
             resource=self.vpc_resource,
             properties=prop
