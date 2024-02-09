@@ -9,15 +9,15 @@ class Subnet(Base, BaseAbstractmethod):
 
     def __init__(self, name=None, state=None, dry_run=False, cidr=None, region='ap-south-1', zone='a'):
         super().__init__(region=region)
-        self.sb_resource = None
+        self._resource = None
         self.vpc_id = None
-        self.sb_id = None
+        self.id = None
         self.name = name
         self.state = state
         self.dry_run = dry_run
         self.zone = zone
         self.cidr = cidr
-
+        self.availability = False
     def validate(self):
         message = ''
         available = False
@@ -35,8 +35,8 @@ class Subnet(Base, BaseAbstractmethod):
         if response['Subnets']:
             for subnet in response['Subnets']:
                 sb_id = subnet['SubnetId']
-                self.sb_id = sb_id
-                self.sb_resource = self.resource.Subnet(self.sb_id)
+                self.id = sb_id
+                self._resource = self.resource.Subnet(self.id)
             available = True
             message = f"Subnet {self.name} is already exists"
         else:
@@ -45,9 +45,17 @@ class Subnet(Base, BaseAbstractmethod):
 
         return ResourceValidationResponseModel(
             available=available,
-            id=self.sb_id,
+            id=self.id,
             message=message,
-            resource=self.sb_resource
+            resource=self._resource
+        ).model_dump()
+
+    def to_dict(self, prop):
+        return ResourceValidationResponseModel(
+            available=self.availability,
+            id=self.id,
+            resource=self._resource,
+            properties=prop
         ).model_dump()
 
     def create(self, vpc_resource, rt_resouce):
@@ -66,7 +74,7 @@ class Subnet(Base, BaseAbstractmethod):
                     AvailabilityZone=f"{self.region}{self.zone}"
                 )
 
-                self.sb_id = subnet.id
+                self.id = subnet.id
                 subnet.create_tags(
                     Tags=[{
                         "Key": "Name",
@@ -87,7 +95,7 @@ class Subnet(Base, BaseAbstractmethod):
         return ResourceCreationResponseModel(
             status=status,
             message=message,
-            resource_id=self.sb_id,
+            resource_id=self.id,
             resource=_resource
         ).model_dump()
 

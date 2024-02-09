@@ -13,7 +13,7 @@ class SecurityGroup(Base, BaseAbstractmethod):
                  description: str = "",
                  permissions: list = None):
         super().__init__(region='ap-south-1')
-        self.sg_resource = None
+        self._resource = None
         self.id = None
         self.name = name
         self.state = state
@@ -30,14 +30,14 @@ class SecurityGroup(Base, BaseAbstractmethod):
             if self.name == ec2_security_group['GroupName']:
                 self.id = ec2_security_group['GroupId']
                 self.sg_availability = True
-                message = f'Security_Group {self.name} Already exist'
-                self.sg_resource = self.resource.SecurityGroup(self.id)
+                self._resource = self.resource.SecurityGroup(self.id)
 
+    def to_dict(self, prop):
         return ResourceValidationResponseModel(
             available=self.sg_availability,
             id=self.id,
-            resource=self.sg_resource,
-            message=message
+            resource=self._resource,
+            properties=prop
         ).model_dump()
 
     def create(self, vpc_id:str):
@@ -62,7 +62,7 @@ class SecurityGroup(Base, BaseAbstractmethod):
             message = f'Security Group {self.name} Created Successfully!'
             self.sg_availability = True
             self.id = secGroup.id
-            self.sg_resource = self.resource.SecurityGroup(self.id)
+            self._resource = self.resource.SecurityGroup(self.id)
         else:
             message = f'Error while creating ingress rule in the security Group'
 
@@ -70,7 +70,7 @@ class SecurityGroup(Base, BaseAbstractmethod):
             status=self.sg_availability,
             message=message,
             resource_id=self.id,
-            resource=self.sg_resource
+            resource=self._resource
         ).model_dump()
 
 

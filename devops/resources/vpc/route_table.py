@@ -1,12 +1,12 @@
 from devops.models.vpc import ResourceValidationResponseModel, ResourceCreationResponseModel, \
     DeleteResourceResponseModel
-from devops.resources import Base
+from devops.resources import Base, BaseAbstractmethod
 import boto3.exceptions
 
-class RouteTable(Base):
+class RouteTable(Base, BaseAbstractmethod):
 
     def __init__(self, name=None, state=None, dry_run=False, region="ap-south-1", DestinationCidrBlock=None):
-        self.rt_resource = None
+        self._resource = None
         self.rt_available = False
         region = region if region else "ap-south-1"
         super().__init__(region=region)
@@ -26,7 +26,7 @@ class RouteTable(Base):
             if response['RouteTables']:
                 self.rt_available = True
                 self.id = response['RouteTables'][0]['RouteTableId']
-                self.rt_resource = self.resource.RouteTable(self.id)
+                self._resource = self.resource.RouteTable(self.id)
 
         except Exception as e:
             print(f"Something went wrong {e}")
@@ -35,7 +35,7 @@ class RouteTable(Base):
         return ResourceValidationResponseModel(
             available=self.rt_available,
             id=self.id,
-            resource=self.rt_resource,
+            resource=self._resource,
             properties=prop
         ).model_dump()
 
@@ -58,7 +58,7 @@ class RouteTable(Base):
 
                     message = f"route table {self.name} created successfully!"
                     status = True
-                    self.rt_resource = self.resource.RouteTable(self.id)
+                    self._resource = self.resource.RouteTable(self.id)
                 else:
                     message = "Invalid internet_gateway_id. rt-63"
                     status = False
@@ -69,7 +69,7 @@ class RouteTable(Base):
                 status=status,
                 message=message,
                 resource_id=self.id,
-                resource=self.rt_resource
+                resource=self._resource
             ).model_dump()
 
     def delete(self, rt_resource):

@@ -53,14 +53,14 @@ class Vpc(Base, BaseAbstractmethod):
         if response['Vpcs']:
             if not self.id:
                 self.id = response['Vpcs'][0]['VpcId']
-                self.vpc_resource = self.resource.Vpc(self.id)
+                self._resource = self.resource.Vpc(self.id)
             self.availability = True
 
     def to_dict(self, prop):
         return ResourceValidationResponseModel(
             available=self.availability,
             id=self.id,
-            resource=self.vpc_resource,
+            resource=self._resource,
             properties=prop
         ).model_dump()
 
@@ -72,7 +72,7 @@ class Vpc(Base, BaseAbstractmethod):
             if self.state == "present":
                 response = self.client.create_vpc(CidrBlock=self.cidr_block)
                 self.id = response['Vpc']['VpcId']
-                self.vpc_resource = self.resource.Vpc(self.id)
+                self._resource = self.resource.Vpc(self.id)
                 self._wait_until_available(self.resource.Vpc(self.id), "VPC")
                 print(f"VPC {self.name} Attaching name to the VPC")
                 self._add_tags(self.name)  # adding name to the VPC
@@ -86,11 +86,11 @@ class Vpc(Base, BaseAbstractmethod):
             status=resource_status,
             message=message,
             resource_id=self.id,
-            resource=self.vpc_resource
+            resource=self._resource
         ).model_dump()
 
     def _add_tags(self, vpc_name: str):
-        self.vpc_resource.create_tags(
+        self._resource.create_tags(
             Tags=[{
                 "Key": "Name",
                 "Value": vpc_name
@@ -107,9 +107,9 @@ class Vpc(Base, BaseAbstractmethod):
         """ Delete the VPC """
         status = False
         message = ""
-        if self.vpc_resource:
+        if self._resource:
             try:
-                self.vpc_resource.delete()
+                self._resource.delete()
                 status = True
                 message = "Vpc Deleted successfully"
             except boto3.exceptions.Boto3Error as e:

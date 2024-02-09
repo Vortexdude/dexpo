@@ -5,7 +5,7 @@ import boto3.exceptions
 class InternetGateway(Base, BaseAbstractmethod):
 
     def __init__(self, name=None, state=None, dry_run=False, region=None, *args, **kwargs):
-        self.ig_resource = None
+        self._resource = None
         self.id = ""
         region = region if region else "ap-south-1"
         super().__init__(region=region)
@@ -25,7 +25,7 @@ class InternetGateway(Base, BaseAbstractmethod):
                 if response['InternetGateways']:
                     self.ig_available = True
                     self.id = response['InternetGateways'][0]['InternetGatewayId']
-                    self.ig_resource = self.resource.InternetGateway(self.id)
+                    self._resource = self.resource.InternetGateway(self.id)
 
         except Exception as e:
             print(f"Something went wrong {e}")
@@ -34,7 +34,7 @@ class InternetGateway(Base, BaseAbstractmethod):
         return ResourceValidationResponseModel(
             available=self.ig_available,
             id=self.id,
-            resource=self.ig_resource,
+            resource=self._resource,
             properties=prop
         ).model_dump()
 
@@ -52,7 +52,7 @@ class InternetGateway(Base, BaseAbstractmethod):
         if response['InternetGateway']:
             # print("Internet Gateway Created Successfully!")
             self.id = response['InternetGateway']['InternetGatewayId']
-            self.ig_resource = self.resource.InternetGateway(self.id)
+            self._resource = self.resource.InternetGateway(self.id)
             if vpc_resource:
                 vpc_resource.attach_internet_gateway(InternetGatewayId=self.id)
                 # print(f"Internet gateway {self.ig_name} attached to VPC successfully!")
@@ -69,7 +69,7 @@ class InternetGateway(Base, BaseAbstractmethod):
             status=resource_status,
             message=message,
             resource_id=self.id,
-            resource=self.ig_resource
+            resource=self._resource
         ).model_dump()
 
     def delete(self, vpc_resource, vpc_id: str):
