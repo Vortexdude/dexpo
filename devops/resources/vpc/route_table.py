@@ -5,7 +5,7 @@ import boto3.exceptions
 
 class RouteTable(Base):
 
-    def __init__(self, name=None, state=None, dry_run=False, region="ap-south-1", destination_cidr_block=None):
+    def __init__(self, name=None, state=None, dry_run=False, region="ap-south-1", DestinationCidrBlock=None):
         self.rt_resource = None
         self.rt_available = False
         region = region if region else "ap-south-1"
@@ -14,6 +14,7 @@ class RouteTable(Base):
         self.state = state
         self.dry_run = dry_run
         self.rt_id = ""
+        self.DestinationCidrBlock = DestinationCidrBlock
 
     def validate(self):
         try:
@@ -39,6 +40,8 @@ class RouteTable(Base):
 
         except Exception as e:
             print(f"Something went wrong {e}")
+
+
 
     def create(self, vpc_resource, internet_gateway_id: str):
         message = ""
