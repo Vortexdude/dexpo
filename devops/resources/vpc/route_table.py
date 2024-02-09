@@ -13,7 +13,7 @@ class RouteTable(Base):
         self.name = name
         self.state = state
         self.dry_run = dry_run
-        self.rt_id = ""
+        self.id = ""
         self.DestinationCidrBlock = DestinationCidrBlock
 
     def validate(self):
@@ -25,23 +25,19 @@ class RouteTable(Base):
             }])
             if response['RouteTables']:
                 self.rt_available = True
-                self.rt_id = response['RouteTables'][0]['RouteTableId']
-                self.rt_resource = self.resource.RouteTable(self.rt_id)
-                message = f"Route Table {self.name} is already exists"
-            else:
-                message = f"Route Table {self.name} is not available"
-
-            return ResourceValidationResponseModel(
-                available=self.rt_available,
-                id=self.rt_id,
-                resource=self.rt_resource,
-                message=message
-            ).model_dump()
+                self.id = response['RouteTables'][0]['RouteTableId']
+                self.rt_resource = self.resource.RouteTable(self.id)
 
         except Exception as e:
             print(f"Something went wrong {e}")
 
-
+    def to_dict(self, prop):
+        return ResourceValidationResponseModel(
+            available=self.rt_available,
+            id=self.id,
+            resource=self.rt_resource,
+            properties=prop
+        ).model_dump()
 
     def create(self, vpc_resource, internet_gateway_id: str):
         message = ""
@@ -49,7 +45,7 @@ class RouteTable(Base):
         if self.state == "present":
             if vpc_resource:
                 routeTable = vpc_resource.create_route_table()
-                self.rt_id = str(routeTable.id)
+                self.id = str(routeTable.id)
                 if internet_gateway_id:
                     routeTable.create_route(
                         DestinationCidrBlock="0.0.0.0/0",
@@ -62,7 +58,7 @@ class RouteTable(Base):
 
                     message = f"route table {self.name} created successfully!"
                     status = True
-                    self.rt_resource = self.resource.RouteTable(self.rt_id)
+                    self.rt_resource = self.resource.RouteTable(self.id)
                 else:
                     message = "Invalid internet_gateway_id. rt-63"
                     status = False
@@ -72,7 +68,7 @@ class RouteTable(Base):
             return ResourceCreationResponseModel(
                 status=status,
                 message=message,
-                resource_id=self.rt_id,
+                resource_id=self.id,
                 resource=self.rt_resource
             ).model_dump()
 
