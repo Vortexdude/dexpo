@@ -14,7 +14,7 @@ class SecurityGroup(Base, BaseAbstractmethod):
                  permissions: list = None):
         super().__init__(region='ap-south-1')
         self._resource = None
-        self.id = None
+        self.id = ''
         self.name = name
         self.state = state
         self.dry_run = dry_run

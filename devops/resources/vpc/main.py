@@ -56,7 +56,7 @@ class Vpc(Base, BaseAbstractmethod):
                 self._resource = self.resource.Vpc(self.id)
             self.availability = True
 
-    def to_dict(self, prop):
+    def to_dict(self, prop: dict):
         return ResourceValidationResponseModel(
             available=self.availability,
             id=self.id,

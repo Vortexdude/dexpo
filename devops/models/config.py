@@ -11,6 +11,11 @@ class BaseClass(BaseModel):
     dry_run: Optional[bool] = True
 
 
+class VpcModel(BaseClass):
+    region: str
+    cidr_block: str
+
+
 class SecurityGroup(BaseClass):
     permissions: List
     description: str
@@ -28,9 +33,8 @@ class RouteTableModel(BaseClass):
     DestinationCidrBlock: str
 
 
-class VpcModel(BaseClass):
-    region: str
-    cidr_block: str
+class GlobalVpc(BaseModel):
+    vpc: VpcModel
     route_table: Optional[RouteTableModel] = None
     internet_gateway: Optional[InternetGatewayModel] = None
     subnets: Optional[list[Subnet]] = None
@@ -46,5 +50,5 @@ class Ec2Model(BaseClass):
 
 
 class RootModel(BaseModel):
-    vpc: List[VpcModel]
-    ec2: List[Ec2Model]
+    vpcs: List[GlobalVpc]
+    ec2: List = None

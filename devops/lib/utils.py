@@ -1,22 +1,69 @@
 import logging
 import json
+import os
 import pathlib
 import argparse
 from enum import Enum
-from devops.resources.const import DISPLAY_TEXT , _SUBNET, _ROUTE_TABLE, _SECURITY_GROUP, _INTERNET_GATEWAY, _VPC, _EC2
+from devops.resources.const import DISPLAY_TEXT, _SUBNET, _ROUTE_TABLE, _SECURITY_GROUP, _INTERNET_GATEWAY, _VPC, _EC2
+
+
+class DexFormatter(logging.Formatter):
+    GREEN = "\x1b[32m"
+    BLUE = "\033[0;34m"
+    PURPLE = "\033[0;35m"
+    CYAN = "\033[0;36m"
+    GRAY = "\x1b[38;20m"
+    LIGHT_GRAY = "\033[0;37m"
+    YELLOW = "\x1b[33;20m"
+    RED = "\x1b[31;20m"
+    BOLD_RED = "\x1b[31;1m"
+    WHITE = "\x1b[0m"
+    RESET = "\x1b[0m"
+
+    custom_format = "%(logger_namespace)s %(levelname)s %(filename)10s:%(lineno)s -%(funcName)10s() %(message)s"
+
+    FORMAT = {
+        logging.DEBUG: GRAY + custom_format + RESET,
+        logging.INFO: CYAN + custom_format + RESET,
+        logging.WARNING: YELLOW + custom_format + RESET,
+        logging.ERROR: RED + custom_format + RESET,
+        logging.CRITICAL: BOLD_RED + custom_format + RESET
+    }
+
+    def format(self, record):
+        log_fmt = self.FORMAT.get(record.levelno)
+        formatter = logging.Formatter(log_fmt)
+        return formatter.format(record)
 
 
 class DexLogger:
-    def __init__(self):
-        FORMAT = '[%(levelname)s] - %(asctime)s - %(name)s - %(message)s'
-        logging.basicConfig(
-            filename="file.log",
-            format=FORMAT,
-            filemode="w"
+    def __init__(self, log_level, logger_namespace):
+        if log_level is None:
+            raise Exception("Error: Please specify the log level.")
+
+        log_levels = {
+            'critical': logging.CRITICAL,
+            'error': logging.ERROR,
+            "warning": logging.WARNING,
+            "warn": logging.WARN,
+            'info': logging.INFO,
+            'debug': logging.DEBUG
+        }
+
+        logger = logging.getLogger(__name__)
+        logger.setLevel(log_levels[log_level])
+
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(DexFormatter())
+        logger.addHandler(console_handler)
+        self.logger = logging.LoggerAdapter(
+            logger,
+            {"logger_namespace": logger_namespace}
         )
+        self.log_level = self.logger.logger.level
 
     def get_logger(self):
-        return logging.getLogger("EC2")
+        return self.logger
 
 
 class Utils:
@@ -33,6 +80,17 @@ class Utils:
         with open(file) as JSON:
             json_dict = json.load(JSON)
         return json_dict
+
+    @staticmethod
+    def convert_json(data: dict):
+        """Convert dict to json"""
+        r = json.dumps(data)
+        return r
+
+    @staticmethod
+    def write_to_file(filename: str, data: dict):
+        with open(filename, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=4)
 
 
 class Parser(argparse.ArgumentParser):
@@ -64,7 +122,6 @@ class Parser(argparse.ArgumentParser):
 
 
 class DexColors:
-
     class Color(Enum):
         DEBUG = '\033[94m'
         CYAN = '\033[96m'
@@ -119,3 +176,16 @@ def dex_wrapper(level: str, item: dict, _tmp_text):
     )
 
     return dex_colors.dprint(level_mapping[level], _tmp_text)
+
+
+class Config:
+    @staticmethod
+    def load_json(file: str) -> dict:
+        """
+        Read the json file and return the json data
+        required the file name only it will resolve the path automatically
+
+        """
+        with open(file) as JSON:
+            json_dict = json.load(JSON)
+        return json_dict

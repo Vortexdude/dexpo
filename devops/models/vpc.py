@@ -1,12 +1,13 @@
 from pydantic import BaseModel
 from typing import Optional, Any
+from devops.models.config import VpcModel, InternetGatewayModel, Subnet, SecurityGroup, RouteTableModel
 
 
 class ResourceValidationResponseModel(BaseModel):
     available: bool
     id: Optional[str] | Optional[list]
     resource: Optional[Any] | Optional[list]
-    message: str
+    properties: VpcModel | InternetGatewayModel | Subnet | SecurityGroup | RouteTableModel
 
 
 class ResourceCreationResponseModel(BaseModel):

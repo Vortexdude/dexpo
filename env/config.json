@@ -1,11 +1,13 @@
 {
-    "vpc": [
+    "vpcs": [
         {
-            "name": "boto3-testing",
-            "state": "present",
-            "dry_run": "True",
-            "region": "ap-south-1",
-            "cidr_block": "192.168.0.0/16",
+            "vpc": {
+                "name": "boto3-testing",
+                "state": "present",
+                "dry_run": "True",
+                "region": "ap-south-1",
+                "cidr_block": "192.168.0.0/16"
+            },
             "route_table": {
                 "name": "boto3-testing-rt",
                 "state": "present",

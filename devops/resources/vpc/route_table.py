@@ -3,6 +3,7 @@ from devops.models.vpc import ResourceValidationResponseModel, ResourceCreationR
 from devops.resources import Base, BaseAbstractmethod
 import boto3.exceptions
 
+
 class RouteTable(Base, BaseAbstractmethod):
 
     def __init__(self, name=None, state=None, dry_run=False, region="ap-south-1", DestinationCidrBlock=None):

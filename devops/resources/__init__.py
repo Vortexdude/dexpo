@@ -18,7 +18,7 @@ class Base:
         self.region = region
         self.client = boto3.client("ec2", region)
         self.resource = boto3.resource("ec2", region)
-        self.vpc_resource = None
+        self._resource = None
 
 class Resources(Base):
     def __init__(self):
@@ -35,6 +35,10 @@ class BaseAbstractmethod(metaclass=ABCMeta):
 
     @abstractmethod
     def validate(self):
+        pass
+
+    @abstractmethod
+    def to_dict(self, prop: dict):
         pass
 
     @abstractmethod

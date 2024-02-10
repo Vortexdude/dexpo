@@ -11,13 +11,14 @@ class Subnet(Base, BaseAbstractmethod):
         super().__init__(region=region)
         self._resource = None
         self.vpc_id = None
-        self.id = None
+        self.id = ''
         self.name = name
         self.state = state
         self.dry_run = dry_run
         self.zone = zone
         self.cidr = cidr
         self.availability = False
+
     def validate(self):
         message = ''
         available = False
@@ -37,18 +38,8 @@ class Subnet(Base, BaseAbstractmethod):
                 sb_id = subnet['SubnetId']
                 self.id = sb_id
                 self._resource = self.resource.Subnet(self.id)
-            available = True
-            message = f"Subnet {self.name} is already exists"
-        else:
-            available = False
-            message = f"Subnet {self.name} is not available"
+            self.availability = True
 
-        return ResourceValidationResponseModel(
-            available=available,
-            id=self.id,
-            message=message,
-            resource=self._resource
-        ).model_dump()
 
     def to_dict(self, prop):
         return ResourceValidationResponseModel(
