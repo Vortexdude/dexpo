@@ -2,6 +2,7 @@ from devops.resources import Base, BaseAbstractmethod
 from devops.models.vpc import ResourceValidationResponseModel, ResourceCreationResponseModel, \
     DeleteResourceResponseModel
 import boto3.exceptions
+from . import logger
 
 """
 The response* model used to send the data as per the required flied
@@ -55,9 +56,11 @@ class Vpc(Base, BaseAbstractmethod):
                 self.id = response['Vpcs'][0]['VpcId']
                 self._resource = self.resource.Vpc(self.id)
             self.availability = True
+            logger.debug(f"VPC {self.name} already exist")
 
     def to_dict(self, prop: dict):
         return ResourceValidationResponseModel(
+            type='vpc',
             available=self.availability,
             id=self.id,
             resource=self._resource,
@@ -74,13 +77,14 @@ class Vpc(Base, BaseAbstractmethod):
                 self.id = response['Vpc']['VpcId']
                 self._resource = self.resource.Vpc(self.id)
                 self._wait_until_available(self.resource.Vpc(self.id), "VPC")
-                print(f"VPC {self.name} Attaching name to the VPC")
+                logger.debug(f"VPC {self.name} Attaching name to the VPC")
                 self._add_tags(self.name)  # adding name to the VPC
                 resource_status = True
                 message = f"Vpc {self.name} Created Successfully!"
+                logger.debug(f"Vpc {self.name} Created Successfully!")
 
         except Exception as e:
-            print(f"There are some error in launching the vpc {e}")
+            logger.error(f"There are some error in launching the vpc {e}")
 
         return ResourceCreationResponseModel(
             status=resource_status,
@@ -101,7 +105,7 @@ class Vpc(Base, BaseAbstractmethod):
         """Wait until the resource is available."""
 
         resource.wait_until_available()
-        print(f"{resource_name} {self.name} is available.")
+        logger.debug(f"{resource_name} {self.name} is available.")
 
     def delete(self):
         """ Delete the VPC """
@@ -112,6 +116,7 @@ class Vpc(Base, BaseAbstractmethod):
                 self._resource.delete()
                 status = True
                 message = "Vpc Deleted successfully"
+                logger.debug(f"Vpc {self.name} Deleted successfully")
             except boto3.exceptions.Boto3Error as e:
                 print(e)
         else:

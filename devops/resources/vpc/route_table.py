@@ -2,7 +2,7 @@ from devops.models.vpc import ResourceValidationResponseModel, ResourceCreationR
     DeleteResourceResponseModel
 from devops.resources import Base, BaseAbstractmethod
 import boto3.exceptions
-
+from . import logger
 
 class RouteTable(Base, BaseAbstractmethod):
 
@@ -28,16 +28,18 @@ class RouteTable(Base, BaseAbstractmethod):
                 self.rt_available = True
                 self.id = response['RouteTables'][0]['RouteTableId']
                 self._resource = self.resource.RouteTable(self.id)
+                logger.debug(f"Route Table {self.name} already exist ")
 
         except Exception as e:
             print(f"Something went wrong {e}")
 
     def to_dict(self, prop):
         return ResourceValidationResponseModel(
+            type='rt',
             available=self.rt_available,
             id=self.id,
             resource=self._resource,
-            properties=prop
+            properties=prop,
         ).model_dump()
 
     def create(self, vpc_resource, internet_gateway_id: str):
@@ -58,19 +60,23 @@ class RouteTable(Base, BaseAbstractmethod):
                     }])
 
                     message = f"route table {self.name} created successfully!"
+                    logger.debug(f"route table {self.name} created successfully!")
                     status = True
                     self._resource = self.resource.RouteTable(self.id)
                 else:
                     message = "Invalid internet_gateway_id. rt-63"
+                    logger.debug(f"Invalid gateway id")
                     status = False
             else:
                 print("Invalid vpc_resource. rt-66")
+                logger.debug(f"Invalid vpc_resource.")
 
             return ResourceCreationResponseModel(
                 status=status,
                 message=message,
                 resource_id=self.id,
-                resource=self._resource
+                resource=self._resource,
+                type='rt'
             ).model_dump()
 
     def delete(self, rt_resource):

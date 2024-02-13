@@ -1,6 +1,8 @@
 from devops.resources import Base, BaseAbstractmethod
 from devops.models.vpc import ResourceValidationResponseModel, ResourceCreationResponseModel, DeleteResourceResponseModel
 import boto3.exceptions
+from . import logger
+
 
 class InternetGateway(Base, BaseAbstractmethod):
 
@@ -9,7 +11,7 @@ class InternetGateway(Base, BaseAbstractmethod):
         self.id = ""
         region = region if region else "ap-south-1"
         super().__init__(region=region)
-        self.ig_name = name
+        self.name = name
         self.state = state
         self.dry_run = dry_run
         self.ig_available = False
@@ -19,23 +21,27 @@ class InternetGateway(Base, BaseAbstractmethod):
             if self.state == "present":
                 response = self.client.describe_internet_gateways(Filters=[{
                     "Name": "tag:Name",
-                    "Values": [self.ig_name]
+                    "Values": [self.name]
                 }])
 
                 if response['InternetGateways']:
                     self.ig_available = True
                     self.id = response['InternetGateways'][0]['InternetGatewayId']
                     self._resource = self.resource.InternetGateway(self.id)
+                    logger.debug(f"Internet gateway {self.name} already exists")
 
         except Exception as e:
             print(f"Something went wrong {e}")
+            logger.error(e)
 
     def to_dict(self, prop):
         return ResourceValidationResponseModel(
+            type='ig',
             available=self.ig_available,
             id=self.id,
             resource=self._resource,
             properties=prop
+
         ).model_dump()
 
 
@@ -45,7 +51,7 @@ class InternetGateway(Base, BaseAbstractmethod):
                 "ResourceType": "internet-gateway",
                 "Tags": [{
                     "Key": "Name",
-                    "Value": self.ig_name
+                    "Value": self.name
                 }]
             }]
         )
@@ -56,14 +62,17 @@ class InternetGateway(Base, BaseAbstractmethod):
             if vpc_resource:
                 vpc_resource.attach_internet_gateway(InternetGatewayId=self.id)
                 # print(f"Internet gateway {self.ig_name} attached to VPC successfully!")
+                # logger.debug(f"Internet gateway {self.name} attached to VPC successfully!")
 
             else:
                 print("Unknown VPC resource while launching the Internet gateway")
+                logger.error("Unknown VPC resource while launching the Internet gateway")
         else:
             print("There is an error while creating the InternetGateway")
 
         resource_status = True
-        message = f"Internet Gateway {self.ig_name} Created Successfully!"
+        message = f"Internet Gateway {self.name} Created Successfully!"
+        logger.debug(f"Internet Gateway {self.name} Created Successfully!")
 
         return ResourceCreationResponseModel(
             status=resource_status,
@@ -89,6 +98,7 @@ class InternetGateway(Base, BaseAbstractmethod):
                             # DryRun=True
                         )
                         message = "Internet Gateway Deleted Successfully"
+                        logger.debug("Internet Gateway Deleted Successfully")
                         status = True
                     except boto3.exceptions.Boto3Error as e:
                         print(e)

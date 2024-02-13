@@ -4,7 +4,11 @@ import os
 import pathlib
 import argparse
 from enum import Enum
-from devops.resources.const import DISPLAY_TEXT, _SUBNET, _ROUTE_TABLE, _SECURITY_GROUP, _INTERNET_GATEWAY, _VPC, _EC2
+ENCODING = 'utf-8'
+
+
+# write to a file
+# https://stackoverflow.com/questions/12309269/how-do-i-write-json-data-to-a-file
 
 
 class DexFormatter(logging.Formatter):
@@ -114,7 +118,8 @@ class Parser(argparse.ArgumentParser):
             help='Do some homework'
         )
         if not self.parse_args().action:
-            return self.print_help()
+            self.print_help()
+            exit(33)
 
     @property
     def args(self):
@@ -189,3 +194,12 @@ class Config:
         with open(file) as JSON:
             json_dict = json.load(JSON)
         return json_dict
+
+    @staticmethod
+    def write_to_file(filename: str, data: dict):
+        with open(filename, 'w', encoding=ENCODING) as f:
+            json.dump(data, f, ensure_ascii=False, indent=4)
+
+    @staticmethod
+    def file_existence(file_path: str):
+        return os.path.exists(file_path)

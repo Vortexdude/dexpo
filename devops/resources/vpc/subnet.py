@@ -3,6 +3,7 @@ from devops.models.vpc import ResourceCreationResponseModel, ResourceValidationR
     DeleteResourceResponseModel
 from devops.resources import ClientError
 import boto3.exceptions
+from . import logger
 
 
 class Subnet(Base, BaseAbstractmethod):
@@ -38,11 +39,13 @@ class Subnet(Base, BaseAbstractmethod):
                 sb_id = subnet['SubnetId']
                 self.id = sb_id
                 self._resource = self.resource.Subnet(self.id)
-            self.availability = True
 
+            self.availability = True
+            logger.debug(f"Subnet {self.name} already Exist")
 
     def to_dict(self, prop):
         return ResourceValidationResponseModel(
+            type='sb',
             available=self.availability,
             id=self.id,
             resource=self._resource,
@@ -76,11 +79,14 @@ class Subnet(Base, BaseAbstractmethod):
                 rt_resouce.associate_with_subnet(SubnetId=subnet.id)
                 status = True
                 message = f"Subnet {self.name} created successfully!"
+                logger.debug(f"Subnet {self.name} created successfully!")
                 _resource = self.resource.Subnet(subnet.id)
 
             except ClientError as e:
                 if e.response['Error']['Code'] == 'InvalidSubnet.Conflict':
                     message = f"Subnet {self.name} already exist"
+                    logger.error(f"Subnet {self.name} already exist")
+                    print(f"{e= }")
                     status = False
 
         return ResourceCreationResponseModel(
@@ -101,10 +107,13 @@ class Subnet(Base, BaseAbstractmethod):
                     sb_resource.delete()
                     status = True
                     message = 'Subnet deleted successfully'
+                    logger.debug(f"Subnet {self.name} already exists")
             except boto3.exceptions.Boto3Error as e:
-                print(e)
+                logger.error(e)
+
         else:
             message = 'Subnet doesnt exist'
+            logger.error(f"Subnet {self.name} does not exists")
 
         return DeleteResourceResponseModel(
             status=status,

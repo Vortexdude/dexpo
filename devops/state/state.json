@@ -1,0 +1,64 @@
+{
+    "boto3-testing": {
+        "available": false,
+        "id": "",
+        "resource": null,
+        "properties": {
+            "name": "boto3-testing",
+            "state": "present",
+            "dry_run": true,
+            "region": "ap-south-1",
+            "cidr_block": "192.168.0.0/16"
+        }
+    },
+    "boto3-testing-ig": {
+        "available": false,
+        "id": "",
+        "resource": null,
+        "properties": {
+            "name": "boto3-testing-ig",
+            "state": "present",
+            "dry_run": true
+        }
+    },
+    "boto3-testing-rt": {
+        "available": false,
+        "id": "",
+        "resource": null,
+        "properties": {
+            "name": "boto3-testing-rt",
+            "state": "present",
+            "dry_run": true
+        }
+    },
+    "boto3-testing-sn": {
+        "available": false,
+        "id": "",
+        "resource": null,
+        "properties": {
+            "name": "boto3-testing-sn",
+            "state": "present",
+            "dry_run": true
+        }
+    },
+    "boto3-testing-sn-private": {
+        "available": false,
+        "id": "",
+        "resource": null,
+        "properties": {
+            "name": "boto3-testing-sn-private",
+            "state": "present",
+            "dry_run": true
+        }
+    },
+    "boto3-testing-sg": {
+        "available": false,
+        "id": "",
+        "resource": null,
+        "properties": {
+            "name": "boto3-testing-sg",
+            "state": "present",
+            "dry_run": true
+        }
+    }
+}

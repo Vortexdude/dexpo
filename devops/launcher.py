@@ -7,25 +7,12 @@ from devops.resources.vpc.intenet_gateway import InternetGateway
 from devops.resources.vpc.subnet import Subnet
 from devops.resources.vpc.security_group import SecurityGroup
 from devops.lib.utils import Utils, DexColors
-import os
-
+from settings import logger
 
 dex_color = DexColors()
 
-CONFIG_FILE = '../env/config.json'
-
-STATE_FILE_NAME = 'state.json'
 COMMAND = ''
 RESOURCE_COUNT: int = 0
-# convert the json into dictionary
-_json = Utils.read_json(CONFIG_FILE)
-
-# pass the data into the Model fto get the accurate data
-config = RootModel(**_json)
-RESULT = []
-
-
-STATE_FILE = os.path.abspath(STATE_FILE_NAME)
 
 
 class VpcMaster(Base):
@@ -93,32 +80,81 @@ class VpcMaster(Base):
             self.moduleSg.validate()
             self.moduleStates.update({security_group['name']: self.moduleSg.to_dict(security_group)})
 
-        Utils.write_to_file('state.json', self.moduleStates)
-
-
     def _store_state(self):
-        global STATE_FILE
-
+        settings.store_state(data=self.moduleStates)
 
     def launch(self):
-        for module in self.moduleStates:
-            print(module)
+        _resource_mapping = {
+            'vpc': (self.vpc, self.moduleVpc),
+            'ig': (self.internet_gateway, self.moduleIg),
+            'sg': (self.security_groups, self.moduleSg),
+            'sb': (self.subnets, self.moduleSbn),
+            'rt': (self.route_table, self.moduleRt)
+        }
 
+        for module_name, data in self.moduleStates.items():
+
+            if not data['available']:
+                if data['type'] == 'vpc' and not data['available']:
+                    _vpc_data = self.moduleVpc.create()
+
+                    self.moduleStates[self.vpc['name']]['available'] = _vpc_data['status']
+                    self.moduleStates[self.vpc['name']]['id'] = _vpc_data['resource_id']
+                    self.moduleStates[self.vpc['name']]['resource'] = _vpc_data['resource']
+
+                if self.moduleStates[self.vpc['name']]['available']:
+                    if data['type'] == 'ig':
+                        _ig_data = self.moduleIg.create(
+                            vpc_resource=self.moduleStates[self.vpc['name']]['resource']
+                        )
+                        self.moduleStates[self.internet_gateway['name']]['available'] = _ig_data['status']
+                        self.moduleStates[self.internet_gateway['name']]['id'] = _ig_data['resource_id']
+                        self.moduleStates[self.internet_gateway['name']]['resource'] = _ig_data['resource']
+
+                if data['type'] == 'rt':
+                    _rt_data = self.moduleRt.create(
+                        vpc_resource=self.moduleStates[self.vpc['name']]['resource'],
+                        internet_gateway_id=self.moduleStates[self.internet_gateway['name']]['id']
+                    )
+                    self.moduleStates[self.route_table['name']]['available'] = _rt_data['status']
+                    self.moduleStates[self.route_table['name']]['resource_id'] = _rt_data['resource_id']
+                    self.moduleStates[self.route_table['name']]['resource'] = _rt_data['resource']
+
+                if data['type'] == 'sb':
+                    _sb_data = self.moduleSbn.create(
+                        vpc_resource=self.moduleStates[self.vpc['name']]['resource'],
+                        rt_resouce=self.moduleStates[self.route_table['name']]['resource']
+                    )
+                    print(f"{_sb_data = }")
+                    self.moduleStates[module_name]['available'] = _sb_data['status']
+                    self.moduleStates[module_name]['resource_id'] = _sb_data['resource_id']
+                    self.moduleStates[module_name]['resource'] = _sb_data['resource']
+            #
+            #     if data['type'] == 'sg':
+            #         # for security_group in self.security_groups:
+            #         _sg_data = self.moduleSg.create(
+            #             vpc_id=self.moduleStates[self.vpc['name']]['id']
+            #         )
+            #
+            #         self.moduleStates[module_name]['available'] = _sg_data['status']
+            #         self.moduleStates[module_name]['resource_id'] = _sg_data['resource_id']
+            #         self.moduleStates[module_name]['resource'] = _sg_data['resource']
 
     def delete(self):
         """For delete the AWS resources Sequentially"""
         pass
 
 
-def runner(*args, **kwargs):
-    logger = settings.logger
+def runner(action):
     vpcs = settings.vpcs
     for _vdata in vpcs:
         vpc_master = VpcMaster(**_vdata)
+        if action.lower() == 'apply':
+            vpc_master.launch()
+            # pass
+        elif action.lower() == 'destroy':
+            vpc_master.delete()
 
 
 def run(command: str):
-    global COMMAND
-    COMMAND = command
-    runner(**config.model_dump())
-    # print(_json)
+    runner(action=command)

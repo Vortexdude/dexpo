@@ -6,7 +6,7 @@
                 "state": "present",
                 "dry_run": "True",
                 "region": "ap-south-1",
-                "cidr_block": "192.168.0.0/16"
+                "cidr_block": "10.0.0.0/16"
             },
             "route_table": {
                 "name": "boto3-testing-rt",
@@ -19,15 +19,15 @@
             },
             "subnets": [
                 {
-                    "name": "boto3-testing-sn",
+                    "name": "public-A-boto3",
                     "state": "present",
-                    "cidr": "192.168.1.0/24",
+                    "cidr": "10.0.20.0/24",
                     "zone": "a"
                 },
                 {
-                    "name": "boto3-testing-sn-private",
+                    "name": "private-A-boto3",
                     "state": "present",
-                    "cidr": "192.168.2.0/24",
+                    "cidr": "10.0.255.0/24",
                     "zone": "b"
                 }
             ],

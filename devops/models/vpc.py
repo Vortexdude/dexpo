@@ -8,6 +8,7 @@ class ResourceValidationResponseModel(BaseModel):
     id: Optional[str] | Optional[list]
     resource: Optional[Any] | Optional[list]
     properties: VpcModel | InternetGatewayModel | Subnet | SecurityGroup | RouteTableModel
+    type: str
 
 
 class ResourceCreationResponseModel(BaseModel):
