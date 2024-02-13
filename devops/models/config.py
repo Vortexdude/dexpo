@@ -23,6 +23,7 @@ class SecurityGroup(BaseClass):
 
 class Subnet(BaseClass):
     cidr: str
+    route_table: str
 
 
 class InternetGatewayModel(BaseClass):
@@ -30,14 +31,14 @@ class InternetGatewayModel(BaseClass):
 
 
 class RouteTableModel(BaseClass):
-    DestinationCidrBlock: str
+    DestinationCidrBlock: Optional[str] = None
 
 
 class GlobalVpc(BaseModel):
     vpc: VpcModel
-    route_table: Optional[RouteTableModel] = None
+    route_tables: Optional[List[RouteTableModel]] = None
     internet_gateway: Optional[InternetGatewayModel] = None
-    subnets: Optional[list[Subnet]] = None
+    subnets: Optional[List[Subnet]] = None
     security_groups: Optional[List[SecurityGroup]] = None
 
 

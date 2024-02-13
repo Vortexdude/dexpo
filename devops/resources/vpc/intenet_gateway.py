@@ -61,7 +61,6 @@ class InternetGateway(Base, BaseAbstractmethod):
             self._resource = self.resource.InternetGateway(self.id)
             if vpc_resource:
                 vpc_resource.attach_internet_gateway(InternetGatewayId=self.id)
-                # print(f"Internet gateway {self.ig_name} attached to VPC successfully!")
                 # logger.debug(f"Internet gateway {self.name} attached to VPC successfully!")
 
             else:

@@ -8,11 +8,12 @@ from . import logger
 
 class Subnet(Base, BaseAbstractmethod):
 
-    def __init__(self, name=None, state=None, dry_run=False, cidr=None, region='ap-south-1', zone='a'):
+    def __init__(self, name=None, state=None, dry_run=False, cidr=None, route_table=None, region='ap-south-1', zone='a'):
         super().__init__(region=region)
         self._resource = None
         self.vpc_id = None
         self.id = ''
+        self.route_table = route_table
         self.name = name
         self.state = state
         self.dry_run = dry_run

@@ -8,11 +8,17 @@
                 "region": "ap-south-1",
                 "cidr_block": "10.0.0.0/16"
             },
-            "route_table": {
-                "name": "boto3-testing-rt",
-                "state": "present",
-                "DestinationCidrBlock": "0.0.0.0/0"
-            },
+            "route_tables": [
+                {
+                    "name": "public-route-table",
+                    "state": "present",
+                    "DestinationCidrBlock": "0.0.0.0/0"
+                },
+                {
+                    "name": "private-route-table",
+                    "state": "present"
+                }
+            ],
             "internet_gateway": {
                 "name": "boto3-testing-ig",
                 "state": "present"
@@ -22,13 +28,15 @@
                     "name": "public-A-boto3",
                     "state": "present",
                     "cidr": "10.0.20.0/24",
-                    "zone": "a"
+                    "zone": "a",
+                    "route_table": "public-route-table"
                 },
                 {
                     "name": "private-A-boto3",
                     "state": "present",
                     "cidr": "10.0.255.0/24",
-                    "zone": "b"
+                    "zone": "b",
+                    "route_table": "private-route-table"
                 }
             ],
             "security_groups": [

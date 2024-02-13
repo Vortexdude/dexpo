@@ -42,31 +42,32 @@ class RouteTable(Base, BaseAbstractmethod):
             properties=prop,
         ).model_dump()
 
-    def create(self, vpc_resource, internet_gateway_id: str):
+    def create(self, vpc_resource, internet_gateway_id: str = None):
         message = ""
         status = False
         if self.state == "present":
             if vpc_resource:
                 routeTable = vpc_resource.create_route_table()
+                routeTable.create_tags(Tags=[{
+                    "Key": "Name",
+                    "Value": self.name
+                }])
+
+                logger.debug(f"Route Table {self.name} created successfully")
+                status = True
+
                 self.id = str(routeTable.id)
                 if internet_gateway_id:
                     routeTable.create_route(
                         DestinationCidrBlock="0.0.0.0/0",
                         GatewayId=internet_gateway_id
                     )
-                    routeTable.create_tags(Tags=[{
-                        "Key": "Name",
-                        "Value": self.name
-                    }])
 
                     message = f"route table {self.name} created successfully!"
-                    logger.debug(f"route table {self.name} created successfully!")
-                    status = True
-                    self._resource = self.resource.RouteTable(self.id)
-                else:
-                    message = "Invalid internet_gateway_id. rt-63"
-                    logger.debug(f"Invalid gateway id")
-                    status = False
+                    logger.debug(f"create Route for public access")
+
+                self._resource = self.resource.RouteTable(self.id)
+
             else:
                 print("Invalid vpc_resource. rt-66")
                 logger.debug(f"Invalid vpc_resource.")
