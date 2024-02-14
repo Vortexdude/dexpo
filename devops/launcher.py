@@ -1,15 +1,10 @@
 import settings
-from devops.models.config import RootModel
 from devops.resources import Base
 from devops.resources.vpc.main import Vpc
 from devops.resources.vpc.route_table import RouteTable
 from devops.resources.vpc.intenet_gateway import InternetGateway
 from devops.resources.vpc.subnet import Subnet
 from devops.resources.vpc.security_group import SecurityGroup
-from devops.lib.utils import Utils, DexColors
-from settings import logger
-
-dex_color = DexColors()
 
 COMMAND = ''
 RESOURCE_COUNT: int = 0
@@ -164,8 +159,48 @@ class VpcMaster(Base):
         self.moduleStates[module_name]['resource'] = new_data['resource']
 
     def delete(self):
-        """For delete the AWS resources Sequentially"""
-        pass
+        vpc_resources = []
+        subnet_resources = []
+        route_table_resources = []
+        security_group_resources = []
+        internet_gateway_resources = []
+
+        for module_name, data in self.moduleStates.items():
+            if data['type'] == 'ig':
+                internet_gateway_resources.append(data)
+            if data['type'] == 'vpc':
+                vpc_resources.append(data)
+            elif data['type'] == 'sb':
+                subnet_resources.append(data)
+            elif data['type'] == 'rt':
+                route_table_resources.append(data)
+            elif data['type'] == 'sg':
+                security_group_resources.append(data)
+
+        # """ Delete the resources in the order """
+        for internet_gateway_resource in internet_gateway_resources:
+            internet_gateway_resource['object'].delete(
+                vpc_resource=self.moduleStates[self.vpc['name']]['resource'],
+                vpc_id=self.moduleStates[self.vpc['name']]['id'],
+            )
+
+        for subnet_data in subnet_resources:
+            subnet_data['object'].delete(
+                sb_resource=subnet_data['resource']
+            )
+
+        for route_table_data in route_table_resources:
+            route_table_data['object'].delete(
+                rt_resource=route_table_data['resource']
+            )
+
+        for security_group_data in security_group_resources:
+            security_group_data['object'].delete(
+                sg_resource=security_group_data['resource']
+            )
+
+        for vpc_data in vpc_resources:
+            vpc_data['object'].delete()
 
 
 def runner(action):

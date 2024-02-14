@@ -108,7 +108,7 @@ class Subnet(Base, BaseAbstractmethod):
                     sb_resource.delete()
                     status = True
                     message = 'Subnet deleted successfully'
-                    logger.debug(f"Subnet {self.name} already exists")
+                    logger.warn(f"Subnet {self.name} deleted successfully")
             except boto3.exceptions.Boto3Error as e:
                 logger.error(e)
 

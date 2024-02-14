@@ -116,7 +116,7 @@ class Vpc(Base, BaseAbstractmethod):
                 self._resource.delete()
                 status = True
                 message = "Vpc Deleted successfully"
-                logger.debug(f"Vpc {self.name} Deleted successfully")
+                logger.warn(f"Vpc {self.name} Deleted successfully")
             except boto3.exceptions.Boto3Error as e:
                 print(e)
         else:

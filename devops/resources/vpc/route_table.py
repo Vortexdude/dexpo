@@ -88,11 +88,13 @@ class RouteTable(Base, BaseAbstractmethod):
                 rt_resource.delete()
                 status = True
                 message = 'Route Table deleted successfully'
+                logger.warn(f'Route Table {self.name} deleted successfully')
             except boto3.exceptions.Boto3Error as e:
                 print(e)
         else:
             status = False
             message = 'Route Table doesnt exist'
+            logger.error(f'Route Table {self.name} does not exist')
 
         return DeleteResourceResponseModel(
             status=status,

@@ -89,7 +89,7 @@ class SecurityGroup(Base, BaseAbstractmethod):
                 sg_resource.delete()
                 status = True
                 message = 'Security Group Deleted successfully'
-                logger.debug(f'Security Group {self.name} Deleted successfully')
+                logger.warn(f'Security Group {self.name} Deleted successfully')
             except boto3.exceptions.Boto3Error as e:
                 print(e)
         else:

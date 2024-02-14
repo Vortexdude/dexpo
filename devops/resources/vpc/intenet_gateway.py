@@ -97,7 +97,7 @@ class InternetGateway(Base, BaseAbstractmethod):
                             # DryRun=True
                         )
                         message = "Internet Gateway Deleted Successfully"
-                        logger.debug("Internet Gateway Deleted Successfully")
+                        logger.warn("Internet Gateway Deleted Successfully")
                         status = True
                     except boto3.exceptions.Boto3Error as e:
                         print(e)
