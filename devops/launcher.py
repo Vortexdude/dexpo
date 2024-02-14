@@ -99,29 +99,29 @@ class VpcMaster(Base):
         # settings.store_state(data=state_data)
 
     def launch(self):
+        create_resources = {
+            'vpc': self._create_vpc,
+            'ig': self._create_internet_gateway,
+            'rt': self._create_route_tables,
+            'sb': self._create_subnets,
+            'sg': self._create_security_groups,
+        }
         for module_name, data in self.moduleStates.items():
-            if not data['available']:
-                if data['type'] == 'vpc':
-                    self._create_vpc(module_name)
+            """Check every resource is available or not
+            call the data['type'] from the dict see above |^
+            example = data['type'] = 'vpc', 'ig', 'rt'
+            """
 
-                if data['type'] == 'ig':
-                    self._create_internet_gateway(module_name)
+            if not data['available'] and data['type'] in create_resources:
+                create_resource = create_resources[data['type']]
+                create_resource(module_name, data)
 
-                if data['type'] == 'rt':
-                    self._create_route_tables(module_name, data)
-
-                if data['type'] == 'sb':
-                    self._create_subnets(module_name, data)
-
-                if data['type'] == 'sg':
-                    self._create_security_groups(module_name, data)
-
-    def _create_vpc(self, module_name):
-        _vpc_data = self.moduleVpc.create()
+    def _create_vpc(self, module_name: str, data: dict = None):
+        _vpc_data = data['object'].create()
         self._update_state(module_name, _vpc_data)
 
-    def _create_internet_gateway(self, module_name):
-        _ig_data = self.moduleIg.create(
+    def _create_internet_gateway(self, module_name: str, data: dict = None):
+        _ig_data = data['object'].create(
             vpc_resource=self.moduleStates[self.vpc['name']]['resource']
         )
         self._update_state(module_name, _ig_data)
@@ -162,7 +162,6 @@ class VpcMaster(Base):
         self.moduleStates[module_name]['id'] = new_data['resource_id']
         self.moduleStates[module_name]['available'] = new_data['status']
         self.moduleStates[module_name]['resource'] = new_data['resource']
-
 
     def delete(self):
         """For delete the AWS resources Sequentially"""
