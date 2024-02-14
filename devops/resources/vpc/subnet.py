@@ -42,7 +42,7 @@ class Subnet(Base, BaseAbstractmethod):
                 self._resource = self.resource.Subnet(self.id)
 
             self.availability = True
-            logger.debug(f"Subnet {self.name} already Exist")
+            logger.info(f"Subnet {self.name} already Exist")
 
     def to_dict(self, prop):
         return ResourceValidationResponseModel(

@@ -32,7 +32,7 @@ class SecurityGroup(Base, BaseAbstractmethod):
             if self.name == ec2_security_group['GroupName']:
                 self.id = ec2_security_group['GroupId']
                 self.sg_availability = True
-                logger.debug(f"Security Group {self.name} already exists")
+                logger.info(f"Security Group {self.name} already exists")
                 self._resource = self.resource.SecurityGroup(self.id)
 
     def to_dict(self, prop):

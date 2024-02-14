@@ -56,7 +56,7 @@ class Vpc(Base, BaseAbstractmethod):
                 self.id = response['Vpcs'][0]['VpcId']
                 self._resource = self.resource.Vpc(self.id)
             self.availability = True
-            logger.debug(f"VPC {self.name} already exist")
+            logger.info(f"VPC {self.name} already exist")
 
     def to_dict(self, prop: dict):
         return ResourceValidationResponseModel(

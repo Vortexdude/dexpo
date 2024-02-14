@@ -91,69 +91,78 @@ class VpcMaster(Base):
             _sg_data['object'] = self.moduleSg
             self.moduleStates.update({security_group['name']: _sg_data})
 
-    def _store_state(self):
-        settings.store_state(data=self.moduleStates)
+        # state_data = self.moduleStates.copy()
+
+        # for k, v in state_data.items():
+        #     del v['object']
+        #
+        # settings.store_state(data=state_data)
 
     def launch(self):
-
         for module_name, data in self.moduleStates.items():
-
             if not data['available']:
-                if data['type'] == 'vpc' and not data['available']:
-                    _vpc_data = self.moduleVpc.create()
+                if data['type'] == 'vpc':
+                    self._create_vpc(module_name)
 
-                    self.moduleStates[module_name]['available'] = _vpc_data['status']
-                    self.moduleStates[module_name]['id'] = _vpc_data['resource_id']
-                    self.moduleStates[module_name]['resource'] = _vpc_data['resource']
-
-                if self.moduleStates[self.vpc['name']]['available']:
-                    if data['type'] == 'ig':
-                        _ig_data = self.moduleIg.create(
-                            vpc_resource=self.moduleStates[self.vpc['name']]['resource']
-                        )
-                        self.moduleStates[module_name]['available'] = _ig_data['status']
-                        self.moduleStates[module_name]['id'] = _ig_data['resource_id']
-                        self.moduleStates[module_name]['resource'] = _ig_data['resource']
+                if data['type'] == 'ig':
+                    self._create_internet_gateway(module_name)
 
                 if data['type'] == 'rt':
-                    for route_table in self.route_tables:
-                        if route_table['name'] == module_name:
-                            internet_gateway_id = ''
-                            if route_table['DestinationCidrBlock']:
-                                internet_gateway_id = self.moduleStates[self.internet_gateway['name']]['id']
-                            _rt_data = data['object'].create(
-                                vpc_resource=self.moduleStates[self.vpc['name']]['resource'],
-                                internet_gateway_id=internet_gateway_id
-                            )
-                            self.moduleStates[module_name]['available'] = _rt_data['status']
-                            self.moduleStates[module_name]['resource_id'] = _rt_data['resource_id']
-                            self.moduleStates[module_name]['resource'] = _rt_data['resource']
+                    self._create_route_tables(module_name, data)
 
                 if data['type'] == 'sb':
-                    for subnet in self.subnets:
-                        if subnet['name'] == module_name:
-
-                            rt_table_name = subnet['route_table']
-                            route_table = self.moduleStates[rt_table_name]['resource']
-                            _sb_data = data['object'].create(
-                                vpc_resource=self.moduleStates[self.vpc['name']]['resource'],
-                                rt_resouce=route_table
-                            )
-                            self.moduleStates[module_name]['available'] = _sb_data['status']
-                            self.moduleStates[module_name]['resource_id'] = _sb_data['resource_id']
-                            self.moduleStates[module_name]['resource'] = _sb_data['resource']
+                    self._create_subnets(module_name, data)
 
                 if data['type'] == 'sg':
-                    for security_group in self.security_groups:
-                        if security_group['name'] == module_name:
+                    self._create_security_groups(module_name, data)
 
-                            _sg_data = data['object'].create(
-                                vpc_id=self.moduleStates[self.vpc['name']]['id']
-                            )
+    def _create_vpc(self, module_name):
+        _vpc_data = self.moduleVpc.create()
+        self._update_state(module_name, _vpc_data)
 
-                            self.moduleStates[module_name]['available'] = _sg_data['status']
-                            self.moduleStates[module_name]['resource_id'] = _sg_data['resource_id']
-                            self.moduleStates[module_name]['resource'] = _sg_data['resource']
+    def _create_internet_gateway(self, module_name):
+        _ig_data = self.moduleIg.create(
+            vpc_resource=self.moduleStates[self.vpc['name']]['resource']
+        )
+        self._update_state(module_name, _ig_data)
+
+    def _create_route_tables(self, module_name: str, data: dict):
+
+        for route_table in self.route_tables:
+            gateway_id = ''
+            if route_table['DestinationCidrBlock']:
+                gateway_id = self.moduleStates[self.internet_gateway['name']]['id']
+
+            if route_table['name'] == module_name:
+                _rt_data = data['object'].create(
+                    vpc_resource=self.moduleStates[self.vpc['name']]['resource'],
+                    internet_gateway_id=gateway_id
+                )
+                self._update_state(module_name, _rt_data)
+
+    def _create_subnets(self, module_name: str, data: dict):
+        for subnet in self.subnets:
+            if subnet['name'] == module_name:
+                route_table_name = subnet['route_table']
+                _sb_data = data['object'].create(
+                    vpc_resource=self.moduleStates[self.vpc['name']]['resource'],
+                    rt_resouce=self.moduleStates[route_table_name]['resource']
+                )
+                self._update_state(module_name, _sb_data)
+
+    def _create_security_groups(self, module_name, data):
+        for security_group in self.security_groups:
+            if security_group['name'] == module_name:
+                _sg_data = data['object'].create(
+                    vpc_id=self.moduleStates[self.vpc['name']]['id']
+                )
+                self._update_state(module_name, _sg_data)
+
+    def _update_state(self, module_name, new_data):
+        self.moduleStates[module_name]['id'] = new_data['resource_id']
+        self.moduleStates[module_name]['available'] = new_data['status']
+        self.moduleStates[module_name]['resource'] = new_data['resource']
+
 
     def delete(self):
         """For delete the AWS resources Sequentially"""
@@ -166,7 +175,7 @@ def runner(action):
         vpc_master = VpcMaster(**_vdata)
         if action.lower() == 'apply':
             vpc_master.launch()
-            # pass
+
         elif action.lower() == 'destroy':
             vpc_master.delete()
 

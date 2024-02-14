@@ -24,7 +24,7 @@ class DexFormatter(logging.Formatter):
     WHITE = "\x1b[0m"
     RESET = "\x1b[0m"
 
-    custom_format = "%(logger_namespace)s %(levelname)s %(filename)10s:%(lineno)s -%(funcName)10s() %(message)s"
+    custom_format = "[%(asctime)s][%(levelname)s] - %(message)s - %(filename)8s:%(lineno)s -%(funcName)10s()"
 
     FORMAT = {
         logging.DEBUG: GRAY + custom_format + RESET,

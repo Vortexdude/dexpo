@@ -25,12 +25,11 @@ config = Config.load_json(file=os.path.join(config_file_path, 'config.json'))
 
 def store_state(data: dict):
     _state_file_path = os.path.join(state_file_path, 'state.json')
-    if Config.file_existence(_state_file_path):
-        Config.write_to_file(filename=os.path.join(state_file_path, 'state.json'), data=data)
-        logger.info(f"Generated the state file {state_file_path}")
-
-    else:
+    if not Config.file_existence(_state_file_path):
         logger.warning(f"State file not present {state_file_path}")
+    Config.write_to_file(filename=os.path.join(state_file_path, 'state.json'), data=data)
+    logger.debug(f"Generated the state file {state_file_path}")
+
 
 try:
     conf = devops.models.config.RootModel(**config).model_dump()

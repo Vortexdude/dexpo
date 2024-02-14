@@ -13,9 +13,10 @@ Refs Links -
    1. [Example1](https://stackoverflow.com/questions/9037828/writing-a-help-for-python-script)
    2. [Example1](https://stackoverflow.com/questions/7427101/simple-argparse-example-wanted-1-argument-3-results)
    3. [Example1](https://stackoverflow.com/questions/15754208/how-to-make-argument-optional-in-python-argparse)
-7. [Github-profile-Trophy](https://github.com/ryo-ma/github-profile-trophy?tab=readme-ov-file)
-8. [Github-Badges](https://img.shields.io/badges/static-badge)
-9. [Github-Typing-Effect](https://readme-typing-svg.herokuapp.com/demo/)
+7. Logging Formatter - [Example](https://stackoverflow.com/questions/7771912/how-to-right-align-level-field-in-python-logging-formatter)
+8. [Github-profile-Trophy](https://github.com/ryo-ma/github-profile-trophy?tab=readme-ov-file)
+9. [Github-Badges](https://img.shields.io/badges/static-badge)
+10. [Github-Typing-Effect](https://readme-typing-svg.herokuapp.com/demo/)
 
 Boto3 Resources - 
 <br/>

@@ -28,7 +28,7 @@ class InternetGateway(Base, BaseAbstractmethod):
                     self.ig_available = True
                     self.id = response['InternetGateways'][0]['InternetGatewayId']
                     self._resource = self.resource.InternetGateway(self.id)
-                    logger.debug(f"Internet gateway {self.name} already exists")
+                    logger.info(f"Internet gateway {self.name} already exists")
 
         except Exception as e:
             print(f"Something went wrong {e}")

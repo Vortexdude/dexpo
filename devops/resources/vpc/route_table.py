@@ -28,7 +28,7 @@ class RouteTable(Base, BaseAbstractmethod):
                 self.rt_available = True
                 self.id = response['RouteTables'][0]['RouteTableId']
                 self._resource = self.resource.RouteTable(self.id)
-                logger.debug(f"Route Table {self.name} already exist ")
+                logger.info(f"Route Table {self.name} already exist ")
 
         except Exception as e:
             print(f"Something went wrong {e}")
