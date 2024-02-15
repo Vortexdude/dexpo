@@ -48,8 +48,10 @@ class Ec2Model(BaseClass):
     subnet: str
     key_file: str
     region: str
-
+    subnet: str
+    vpc: str
+    security_groups: Optional[list] = None
 
 class RootModel(BaseModel):
     vpcs: List[GlobalVpc]
-    ec2: List = None
+    ec2: List[Ec2Model]

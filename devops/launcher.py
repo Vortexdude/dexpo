@@ -1,3 +1,5 @@
+import logging
+
 import settings
 from devops.resources import Base
 from devops.resources.vpc.main import Vpc
@@ -5,9 +7,59 @@ from devops.resources.vpc.route_table import RouteTable
 from devops.resources.vpc.intenet_gateway import InternetGateway
 from devops.resources.vpc.subnet import Subnet
 from devops.resources.vpc.security_group import SecurityGroup
+from devops.resources.ec2 import Ec2
+from settings import logger
 
 COMMAND = ''
 RESOURCE_COUNT: int = 0
+
+
+class Ec2Master(Base):
+    def __init__(self,
+                 moduleStates: dict = None,
+                 region: str = 'ap-south-1',
+                 ec2: dict = None,
+                 ):
+        super().__init__(region)
+        self.ec2 = ec2
+        self.moduleEc2 = None
+        self.moduleStates = moduleStates
+        # print(self.moduleStates)
+        self.validate()
+
+    def validate(self):
+        """Validating the EC2 """
+
+        if self.ec2['vpc'] in self.moduleStates:
+            if self.moduleStates[self.ec2['vpc']]['available']:
+                self.moduleEc2 = Ec2(**self.ec2)
+                self.moduleEc2.validate()
+                _ec2_data = self.moduleEc2.to_dict(self.ec2)
+                _ec2_data['object'] = self.moduleEc2
+                self.moduleStates.update({self.ec2['name']: _ec2_data})
+
+            else:
+                logger.warn("Vpc is not available")
+
+        else:
+            logger.warn("This vpc in not in defined state")
+
+    def to_dict(self):
+        return self.moduleStates
+
+    def launch(self):
+        security_groups_id = []
+        for sg in self.ec2['security_groups']:
+            security_groups_id.append(self.moduleStates[sg]['id'])
+
+        if not self.moduleStates[self.ec2['name']]['available']:
+            self.moduleStates[self.ec2['name']]['object'].create(
+                subnet_id=self.moduleStates[self.ec2['subnet']]['id'],
+                security_group_ids=security_groups_id
+            )
+
+    def delete(self):
+        pass
 
 
 class VpcMaster(Base):
@@ -34,6 +86,7 @@ class VpcMaster(Base):
             internet_gateway: dict = None,
             subnets: list[dict] = None,
             security_groups: list[dict] = None,
+            ec2s: dict = None,
             *args, **kwargs):
 
         super().__init__(region='ap-south-1')
@@ -41,6 +94,7 @@ class VpcMaster(Base):
         self.internet_gateway = internet_gateway
         self.subnets = subnets
         self.route_tables = route_tables
+        self.ec2s = ec2s
         self.vpc = vpc
         self.moduleStates = {}
         """Validating the VPC"""
@@ -204,7 +258,10 @@ class VpcMaster(Base):
 
 
 def runner(action):
+    global vpc_master
+    from devops.resources.ec2 import Ec2
     vpcs = settings.vpcs
+    ec2s = settings.ec2s
     for _vdata in vpcs:
         vpc_master = VpcMaster(**_vdata)
         if action.lower() == 'apply':
@@ -212,6 +269,17 @@ def runner(action):
 
         elif action.lower() == 'destroy':
             vpc_master.delete()
+
+    for ec2 in ec2s:
+        ec2_master = Ec2Master(moduleStates=vpc_master.moduleStates, ec2=ec2,)
+        vpc_master.moduleStates = ec2_master.to_dict()
+        if action.lower() == 'apply':
+            ec2_master.launch()
+
+        if action.lower() == 'destroy':
+            ec2_master.delete()
+
+        # print(vpc_master.moduleStates)
 
 
 def run(command: str):

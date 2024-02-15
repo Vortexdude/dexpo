@@ -64,13 +64,15 @@
     ],
     "ec2": [
         {
-            "name": "boto3-vm",
+            "name": "fd",
             "state": "present",
             "instance_type": "t2.micro",
             "ami": "ami-0a7cf821b91bcccbc",
-            "subnet": "boto3-testing-sn",
-            "key_file": "intelli",
-            "region": "ap-south-1"
+            "subnet": "public-A-boto3",
+            "key_file": "nns",
+            "region": "ap-south-1",
+            "vpc": "boto3-testing",
+            "security_groups": ["boto3-testing-sg"]
         }
     ]
 }
