@@ -203,3 +203,8 @@ class Config:
     @staticmethod
     def file_existence(file_path: str):
         return os.path.exists(file_path)
+
+class AwsCreds:
+    conf: bool = Config.file_existence("~/.aws/config")
+    creds: bool = Config.file_existence("~/.aws/credentials")
+

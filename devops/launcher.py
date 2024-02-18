@@ -84,8 +84,8 @@ class VpcMaster(Base):
             vpc: dict = None,
             route_tables: dict = None,
             internet_gateway: dict = None,
-            subnets: list[dict] = None,
-            security_groups: list[dict] = None,
+            subnets: list = None,
+            security_groups: list = None,
             ec2s: dict = None,
             *args, **kwargs):
 
@@ -259,7 +259,6 @@ class VpcMaster(Base):
 
 def runner(action):
     global vpc_master
-    from devops.resources.ec2 import Ec2
     vpcs = settings.vpcs
     ec2s = settings.ec2s
     for _vdata in vpcs:
