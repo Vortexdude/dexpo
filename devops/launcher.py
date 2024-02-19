@@ -1,5 +1,3 @@
-import logging
-
 import settings
 from devops.resources import Base
 from devops.resources.vpc.main import Vpc
@@ -259,7 +257,6 @@ class VpcMaster(Base):
 
 def runner(action):
     global vpc_master
-    from devops.resources.ec2 import Ec2
     vpcs = settings.vpcs
     ec2s = settings.ec2s
     for _vdata in vpcs:
