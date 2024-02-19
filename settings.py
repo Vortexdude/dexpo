@@ -3,6 +3,7 @@ import pathlib
 import devops.models.config
 from devops.lib.utils import DexLogger
 from devops.lib.utils import Config
+from devops.lib.utils import AwsCreds
 
 # get the current path
 # https://stackoverflow.com/questions/3430372/how-do-i-get-the-full-path-of-the-current-files-directory
@@ -14,11 +15,22 @@ project_home_path = pathlib.Path(__file__).parent.resolve()
 project_name = os.path.basename(project_home_path)
 state_file_path = os.path.join(project_home_path, 'devops', 'state')
 config_file_path = os.path.join(project_home_path, 'devops', 'env')
+aws_config_path = os.path.join(project_home_path, '.aws', 'config')
 
 loginit = DexLogger("debug", project_name)
 logger = loginit.get_logger()
 
 logger.debug("Logging Initialize ... .. .")
+
+aws_credentials_path = os.path.join(project_home_path, '.aws', 'credentials')
+
+if not Config.file_existence(aws_credentials_path):
+    
+    logger.warn(f"No credes - {aws_credentials_path}")
+    if not AwsCreds.creds:
+        logger.error(f"No creds -  {os.path.join(pathlib.Path.home(), '.aws', 'credentials')}")
+        import sys
+        sys.exit(0)
 
 config = Config.load_json(file=os.path.join(config_file_path, 'config.json'))
 

@@ -3,6 +3,7 @@ from devops.models.vpc import ResourceValidationResponseModel, ResourceCreationR
     DeleteResourceResponseModel
 import boto3.exceptions
 from . import logger
+import sys
 
 """
 The response* model used to send the data as per the required flied
@@ -48,15 +49,19 @@ class Vpc(Base, BaseAbstractmethod):
             })
         else:
             print("Something not parsed into the function")
+        try:
 
-        response = self.client.describe_vpcs(Filters=self.filters)
-        self.filters = []
-        if response['Vpcs']:
-            if not self.id:
-                self.id = response['Vpcs'][0]['VpcId']
-                self._resource = self.resource.Vpc(self.id)
-            self.availability = True
-            logger.info(f"VPC {self.name} already exist")
+            response = self.client.describe_vpcs(Filters=self.filters)
+            self.filters = []
+            if response['Vpcs']:
+                if not self.id:
+                    self.id = response['Vpcs'][0]['VpcId']
+                    self._resource = self.resource.Vpc(self.id)
+                self.availability = True
+                logger.info(f"VPC {self.name} already exist")
+        except Exception as e:
+            logger.error("Please Provid the credentials")
+            sys.exit(127)
 
     def to_dict(self, prop: dict):
         return ResourceValidationResponseModel(
