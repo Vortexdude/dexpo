@@ -18,7 +18,8 @@ Refs Links -
 9. [Github-Badges](https://img.shields.io/badges/static-badge)
 10. [Github-Typing-Effect](https://readme-typing-svg.herokuapp.com/demo/)
 11. [Git-Credentials](https://git-scm.com/docs/git-credential-store)
-
+12. [f-string](https://realpython.com/python-f-strings/#:~:text=specific%20and%20clear.-,Python%203.12,-came%20along%20to)
+13. [AI](https://github.com/InstantID/InstantID/tree/main)
 Boto3 Resources - 
 <br/>
 1. A resource representing an Amazon Elastic Compute Cloud (EC2)  [RouteTable](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2/routetable/index.html)
@@ -35,6 +36,9 @@ Boto3 Clients -
 8. [Describe Security Group](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2/client/describe_security_groups.html)
 9. [Create Security Group](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2/client/create_security_group.html)
 10. [Get all instances](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2/vpc/instances.html)
+11. [check the instance existence](https://stackoverflow.com/questions/34751794/displaying-ec2-instance-name-using-boto-3)
 
-Inspirations - 
+# Inspirations - 
 1. [ref](https://gist.github.com/arjunmohnot/314013dbd3b7341ffa3c475dfcbb2b22#file-automateaws-py-L56)
+2. [private-subnet](https://dev.to/aws-builders/secure-aws-vpc-using-public-and-private-subnets-4nih)
+
