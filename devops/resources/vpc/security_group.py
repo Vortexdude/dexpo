@@ -1,8 +1,10 @@
 from devops.models.vpc import ResourceValidationResponseModel, ResourceCreationResponseModel, \
     DeleteResourceResponseModel
-from devops.resources.vpc import Base, BaseAbstractmethod
+from devops.resources import Base, BaseAbstractmethod
 from requests import get
 import boto3.exceptions
+from . import logger
+
 
 class SecurityGroup(Base, BaseAbstractmethod):
     
@@ -13,8 +15,8 @@ class SecurityGroup(Base, BaseAbstractmethod):
                  description: str = "",
                  permissions: list = None):
         super().__init__(region='ap-south-1')
-        self.sg_resource = None
-        self.id = None
+        self._resource = None
+        self.id = ''
         self.name = name
         self.state = state
         self.dry_run = dry_run
@@ -30,14 +32,16 @@ class SecurityGroup(Base, BaseAbstractmethod):
             if self.name == ec2_security_group['GroupName']:
                 self.id = ec2_security_group['GroupId']
                 self.sg_availability = True
-                message = f'Security_Group {self.name} Already exist'
-                self.sg_resource = self.resource.SecurityGroup(self.id)
+                logger.info(f"Security Group {self.name} already exists")
+                self._resource = self.resource.SecurityGroup(self.id)
 
+    def to_dict(self, prop):
         return ResourceValidationResponseModel(
+            type='sg',
             available=self.sg_availability,
             id=self.id,
-            resource=self.sg_resource,
-            message=message
+            resource=self._resource,
+            properties=prop
         ).model_dump()
 
     def create(self, vpc_id:str):
@@ -60,17 +64,19 @@ class SecurityGroup(Base, BaseAbstractmethod):
                 IpPermissions=self.permissions
             )
             message = f'Security Group {self.name} Created Successfully!'
+            logger.debug(f'Security Group {self.name} Created Successfully!')
             self.sg_availability = True
             self.id = secGroup.id
-            self.sg_resource = self.resource.SecurityGroup(self.id)
+            self._resource = self.resource.SecurityGroup(self.id)
         else:
             message = f'Error while creating ingress rule in the security Group'
+            logger.error(f'Error while creating ingress rule in the security Group')
 
         return ResourceCreationResponseModel(
             status=self.sg_availability,
             message=message,
             resource_id=self.id,
-            resource=self.sg_resource
+            resource=self._resource
         ).model_dump()
 
 
@@ -83,10 +89,12 @@ class SecurityGroup(Base, BaseAbstractmethod):
                 sg_resource.delete()
                 status = True
                 message = 'Security Group Deleted successfully'
+                logger.warn(f'Security Group {self.name} Deleted successfully')
             except boto3.exceptions.Boto3Error as e:
                 print(e)
         else:
             message = "Security Group doesnt exist"
+            logger.error(f'Security Group {self.name} doesnt exist')
 
         return DeleteResourceResponseModel(
             status=status,

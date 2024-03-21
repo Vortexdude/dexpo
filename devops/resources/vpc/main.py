@@ -1,7 +1,9 @@
-from ..vpc import Base, BaseAbstractmethod
+from devops.resources import Base, BaseAbstractmethod
 from devops.models.vpc import ResourceValidationResponseModel, ResourceCreationResponseModel, \
     DeleteResourceResponseModel
 import boto3.exceptions
+from . import logger
+import sys
 
 """
 The response* model used to send the data as per the required flied
@@ -13,58 +15,61 @@ try to check the model if needed and also add the validation method and message
 
 class Vpc(Base, BaseAbstractmethod):
 
-    def __init__(self, vpc_name=None, state=False, dry_run=False, vpc_id='', vpc_cidr=None, region=None, *args, **kwargs):
+    def __init__(self, name=None, state=False, dry_run=False, vpc_id='', cidr_block=None, region=None, *args, **kwargs):
         region = region if region else "ap-south-1"
         super().__init__(region=region)
-        self.vpc_name = vpc_name
+        self.name = name
         self.state = state
-        self.vpc_id = vpc_id
-        self.vpc_cidr = vpc_cidr
+        self.id = vpc_id
+        self.cidr_block = cidr_block
         self.dry_run = dry_run
         self.filters = []
-        self.vpc_available = False
+        self.availability = False
 
     def validate(self):
         """Check the availability of the vpc with certain parameter like cidr, vpc_id"""
 
-        if self.vpc_id:
+        if self.id:
             self.filters.append({
                 "Name": "vpc-id",
-                "Values": [self.vpc_id]
+                "Values": [self.id]
             })
 
-        elif self.vpc_cidr:
+        elif self.cidr_block:
             self.filters.append({
                 'Name': 'cidr-block-association.cidr-block',
-                'Values': [self.vpc_cidr]
+                'Values': [self.cidr_block]
             })
 
-        elif self.vpc_name:
+        elif self.name:
             self.filters.append({
                 "Name": "tag:Name",
-                "Values": [self.vpc_name]
+                "Values": [self.name]
 
             })
         else:
             print("Something not parsed into the function")
+        try:
 
-        response = self.client.describe_vpcs(Filters=self.filters)
-        self.filters = []
-        if response['Vpcs']:
-            if not self.vpc_id:
-                self.vpc_id = response['Vpcs'][0]['VpcId']
-                self.vpc_resource = self.resource.Vpc(self.vpc_id)
-            self.vpc_available = True
-            message = f"Vpc {self.vpc_name} is already exists"
+            response = self.client.describe_vpcs(Filters=self.filters)
+            self.filters = []
+            if response['Vpcs']:
+                if not self.id:
+                    self.id = response['Vpcs'][0]['VpcId']
+                    self._resource = self.resource.Vpc(self.id)
+                self.availability = True
+                logger.info(f"VPC {self.name} already exist")
+        except Exception as e:
+            logger.error("Please Provid the credentials")
+            sys.exit(127)
 
-        else:
-            message = f"Vpc {self.vpc_name} is not available"
-
+    def to_dict(self, prop: dict):
         return ResourceValidationResponseModel(
-            available=self.vpc_available,
-            id=self.vpc_id,
-            resource=self.vpc_resource,
-            message=message
+            type='vpc',
+            available=self.availability,
+            id=self.id,
+            resource=self._resource,
+            properties=prop
         ).model_dump()
 
     def create(self):
@@ -73,27 +78,28 @@ class Vpc(Base, BaseAbstractmethod):
         message = ""
         try:
             if self.state == "present":
-                response = self.client.create_vpc(CidrBlock=self.vpc_cidr)
-                self.vpc_id = response['Vpc']['VpcId']
-                self.vpc_resource = self.resource.Vpc(self.vpc_id)
-                self._wait_until_available(self.resource.Vpc(self.vpc_id), "VPC")
-                print(f"VPC {self.vpc_name} Attaching name to the VPC")
-                self._add_tags(self.vpc_name)  # adding name to the VPC
+                response = self.client.create_vpc(CidrBlock=self.cidr_block)
+                self.id = response['Vpc']['VpcId']
+                self._resource = self.resource.Vpc(self.id)
+                self._wait_until_available(self.resource.Vpc(self.id), "VPC")
+                logger.debug(f"VPC {self.name} Attaching name to the VPC")
+                self._add_tags(self.name)  # adding name to the VPC
                 resource_status = True
-                message = f"Vpc {self.vpc_name} Created Successfully!"
+                message = f"Vpc {self.name} Created Successfully!"
+                logger.debug(f"Vpc {self.name} Created Successfully!")
 
         except Exception as e:
-            print(f"There are some error in launching the vpc {e}")
+            logger.error(f"There are some error in launching the vpc {e}")
 
         return ResourceCreationResponseModel(
             status=resource_status,
             message=message,
-            resource_id=self.vpc_id,
-            resource=self.vpc_resource
+            resource_id=self.id,
+            resource=self._resource
         ).model_dump()
 
     def _add_tags(self, vpc_name: str):
-        self.vpc_resource.create_tags(
+        self._resource.create_tags(
             Tags=[{
                 "Key": "Name",
                 "Value": vpc_name
@@ -104,17 +110,18 @@ class Vpc(Base, BaseAbstractmethod):
         """Wait until the resource is available."""
 
         resource.wait_until_available()
-        print(f"{resource_name} {self.vpc_name} is available.")
+        logger.debug(f"{resource_name} {self.name} is available.")
 
     def delete(self):
         """ Delete the VPC """
         status = False
         message = ""
-        if self.vpc_resource:
+        if self._resource:
             try:
-                self.vpc_resource.delete()
+                self._resource.delete()
                 status = True
                 message = "Vpc Deleted successfully"
+                logger.warn(f"Vpc {self.name} Deleted successfully")
             except boto3.exceptions.Boto3Error as e:
                 print(e)
         else:
@@ -126,14 +133,3 @@ class Vpc(Base, BaseAbstractmethod):
             message=message,
             resource='vpc'
         ).model_dump()
-
-
-
-
-
-
-
-
-
-
-

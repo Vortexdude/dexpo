@@ -13,8 +13,13 @@ Refs Links -
    1. [Example1](https://stackoverflow.com/questions/9037828/writing-a-help-for-python-script)
    2. [Example1](https://stackoverflow.com/questions/7427101/simple-argparse-example-wanted-1-argument-3-results)
    3. [Example1](https://stackoverflow.com/questions/15754208/how-to-make-argument-optional-in-python-argparse)
-
-
+7. Logging Formatter - [Example](https://stackoverflow.com/questions/7771912/how-to-right-align-level-field-in-python-logging-formatter)
+8. [Github-profile-Trophy](https://github.com/ryo-ma/github-profile-trophy?tab=readme-ov-file)
+9. [Github-Badges](https://img.shields.io/badges/static-badge)
+10. [Github-Typing-Effect](https://readme-typing-svg.herokuapp.com/demo/)
+11. [Git-Credentials](https://git-scm.com/docs/git-credential-store)
+12. [f-string](https://realpython.com/python-f-strings/#:~:text=specific%20and%20clear.-,Python%203.12,-came%20along%20to)
+13. [AI](https://github.com/InstantID/InstantID/tree/main)
 Boto3 Resources - 
 <br/>
 1. A resource representing an Amazon Elastic Compute Cloud (EC2)  [RouteTable](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2/routetable/index.html)
@@ -30,6 +35,10 @@ Boto3 Clients -
 7. [Security Group Ingress](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2/client/authorize_security_group_ingress.html)
 8. [Describe Security Group](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2/client/describe_security_groups.html)
 9. [Create Security Group](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2/client/create_security_group.html)
+10. [Get all instances](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2/vpc/instances.html)
+11. [check the instance existence](https://stackoverflow.com/questions/34751794/displaying-ec2-instance-name-using-boto-3)
 
-Inspirations - 
+# Inspirations - 
 1. [ref](https://gist.github.com/arjunmohnot/314013dbd3b7341ffa3c475dfcbb2b22#file-automateaws-py-L56)
+2. [private-subnet](https://dev.to/aws-builders/secure-aws-vpc-using-public-and-private-subnets-4nih)
+

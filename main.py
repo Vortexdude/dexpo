@@ -1,5 +1,5 @@
 from devops.launcher import run
-from devops.utils import Parser
+from devops.lib.utils import Parser
 
 if __name__ == "__main__":
     dex_parser = Parser()
