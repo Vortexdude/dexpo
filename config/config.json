@@ -1,40 +1,3 @@
-# AWS Cloud Infrastructure Management using Boto3 and REST API with Python
-
-This repository contains a Python script that utilizes Boto3, the AWS SDK for Python, to create and delete AWS cloud infrastructure. The script also utilizes a REST API for interaction and takes configuration details from a JSON file.
-
-## Requirements
-
-- Python 3.x
-- Boto3 library
-- AWS account with appropriate permissions
-- JSON configuration file with required parameters
-
-## Installation
-
-1. Clone this repository to your local machine:
-
-    ```bash
-    git clone https://github.com/Vortexdude/dexpo
-    ```
-
-2. Create virtual environment
-    ``` bash
-   python3 -m venv venv
-   source venv/bin/activate
-   export PYTHONPATH=$PWD
-   ```
-
-3. Install dependencies:
-
-    ```bash
-    pip3 install -r requirements.txt 
-    ```
-
-## Configuration
-
-Before running the script, you need to configure the AWS credentials and other necessary parameters in the JSON configuration file (`devops/env/config.json`). Example configuration:
-
-```json
 {
     "vpcs": [
         {
@@ -113,26 +76,3 @@ Before running the script, you need to configure the AWS credentials and other n
         }
     ]
 }
-```
-
-Make sure to replace placeholders with your actual AWS credentials and other relevant information.
-
-## Usage
-
-Run the Python script (`main.py`) with the following commands:
-
-To create AWS infrastructure:
-
-```bash
-pythone main.py apply
-```
-
-To delete AWS infrastructure:
-
-```bash
-pythone main.py destroy
-```
-
-## Contributing
-
-Contributions are welcome! Feel free to open issues or pull requests for any improvements or bug fixes.
