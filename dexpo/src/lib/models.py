@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 
 
 class Vpc(BaseModel):
@@ -13,7 +13,7 @@ class Vpc(BaseModel):
 class RouteTable(BaseModel):
     name: str
     state: str
-    DestinationCidrBlock: str
+    DestinationCidrBlock: Optional[str] = None
 
 
 class InternetGateway(BaseModel):

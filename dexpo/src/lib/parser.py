@@ -1,6 +1,5 @@
 import sys
-import os
-from dexpo.src.lib.utils import get_class_variable, CONFIG_FILE_PATH
+from dexpo.src.lib.utils import get_class_variable
 
 
 class DexpoArgParser(object):
@@ -9,28 +8,33 @@ class DexpoArgParser(object):
     DESTROY = '--destroy'
 
     def __init__(self):
-        self.class_var = get_class_variable(self.__class__, True)
+        self.class_var = get_class_variable(self.__class__, True)  # here true means return will be dict
         self.apply = False
         self.destroy = False
-        self.config_file = CONFIG_FILE_PATH + '/config.json'
+        # self.config_file = CONFIG_FILE_PATH + '/config.json'
 
-        for xd in sys.argv[1:]:
-            if xd not in list(self.class_var.values()):
-                print("\nUnknown Option - {xd}".format(xd=xd))
-                self.display_help()
-                sys.exit(125)
+        if len(sys.argv) <= 1:
+            print("\nPlease Supply any arguments")
+            self.display_help()
+            sys.exit(125)
 
         for item in sys.argv[1:]:
+
+            if item not in list(self.class_var.values()):
+                print("\nUnknown Option - {xd}".format(xd=item))
+                self.display_help()
+                sys.exit(125)
 
             if self.HELPER in item:
                 self.display_help()
                 sys.exit(127)
+
             if self.APPLY in item:
-                print("Applying.....")
+                self.action = 'apply'
                 self.apply = True
 
             if self.DESTROY in item:
-                print("Destroying.....")
+                self.action = 'destroy'
                 self.destroy = True
 
     @staticmethod
