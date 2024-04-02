@@ -36,7 +36,7 @@ class SecurityGroup(Base, BaseAbstractmethod):
         pass
 
 
-def security_group_handler(data: dict) -> dict:
+def security_group_validator(data: dict) -> dict:
     _security_group_state = {}
     sg_obj = SecurityGroup(**data)
     security_groups = sg_obj.validate()

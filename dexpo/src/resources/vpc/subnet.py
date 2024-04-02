@@ -36,7 +36,7 @@ class Subnet(Base, BaseAbstractmethod):
         pass
 
 
-def subnet_handler(data: dict) -> dict:
+def subnet_validator(data: dict) -> dict:
     _subnet_state = {}
     sb_obj = Subnet(**data)
     subnets = sb_obj.validate()

@@ -28,7 +28,7 @@ class RouteTable(Base, BaseAbstractmethod):
         pass
 
 
-def route_table_handler(data: dict) -> dict:
+def route_table_validator(data: dict) -> dict:
     _rt_state = {}
     rt_obj = RouteTable(**data)
     rts = rt_obj.validate()

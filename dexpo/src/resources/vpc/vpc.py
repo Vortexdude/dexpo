@@ -43,7 +43,7 @@ class VpcResource(Base, BaseAbstractmethod):
         pass
 
 
-def vpc_handler(data: dict) -> dict:
+def vpc_validator(data: dict) -> dict:
     _vpc_state = {}
     vpc_obj = VpcResource(**data)
     vpcs = vpc_obj.validate()
