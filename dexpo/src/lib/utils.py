@@ -2,7 +2,6 @@ import os
 import json
 import sys
 from errno import EACCES, EPERM
-from abc import ABCMeta, abstractmethod
 
 HOME_DIR = os.path.expanduser('~')
 USER_AWS_FILE_PATH = os.path.join(HOME_DIR, '.aws', 'credentials')
