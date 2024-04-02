@@ -25,3 +25,15 @@ class InternetGateway(Base, BaseAbstractmethod):
 
     def to_dict(self, prop: dict):
         pass
+
+
+def internet_gateway_handler(data: dict):
+    ig_state = {}
+    ig_obj = InternetGateway(**data)
+    igs = ig_obj.validate()
+    if not igs:
+        print("No Internet Gateway found under the Name tag " + data['name'])
+    for ig in igs:
+        ig_state[ig['InternetGatewayId']] = ig
+
+    return ig_state

@@ -26,3 +26,16 @@ class RouteTable(Base, BaseAbstractmethod):
 
     def to_dict(self, prop: dict):
         pass
+
+
+def route_table_handler(data: dict) -> dict:
+    _rt_state = {}
+    rt_obj = RouteTable(**data)
+    rts = rt_obj.validate()
+    if not rts:
+        print("No Route Table found under the Name tag " + data['name'])
+        #  Handle the exiting or skipping form here
+    for rt in rts:
+        _rt_state[rt['RouteTableId']] = rt
+
+    return _rt_state

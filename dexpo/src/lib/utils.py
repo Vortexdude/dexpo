@@ -102,20 +102,13 @@ def load_json(file):
             raise err
 
 
-class BaseAbstractmethod(metaclass=ABCMeta):
+def save_to_file(filename: str, data: dict):
+    """
+    Write dictionary data to a JSON file.
 
-    @abstractmethod
-    def validate(self):
-        pass
-
-    @abstractmethod
-    def to_dict(self, prop: dict):
-        pass
-
-    @abstractmethod
-    def create(self):
-        pass
-
-    @abstractmethod
-    def delete(self):
-        pass
+    Parameters:
+    - filename: Name of the file to write the JSON data to.
+    - data: Dictionary containing the data to be written to the file.
+    """
+    with open(filename, "w") as json_file:
+        json.dump(data, json_file, indent=4)

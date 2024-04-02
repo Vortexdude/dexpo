@@ -2,7 +2,7 @@ from dexpo.src.resources.main import Base, BaseAbstractmethod
 
 
 class VpcResource(Base, BaseAbstractmethod):
-    
+
     def __init__(self, name=None, state=False, dry_run=False, cidr_block=None, region='ap-south-1'):
         self.name = name
         self.state = state
@@ -41,3 +41,16 @@ class VpcResource(Base, BaseAbstractmethod):
 
     def to_dict(self, prop: dict):
         pass
+
+
+def vpc_handler(data: dict) -> dict:
+    _vpc_state = {}
+    vpc_obj = VpcResource(**data)
+    vpcs = vpc_obj.validate()
+    if not vpcs:
+        print("No Vpc found under the name and CIDR block")
+        #  Handle the exiting or skipping form here
+    for vpc in vpcs:
+        _vpc_state[vpc['VpcId']] = vpc
+
+    return _vpc_state
