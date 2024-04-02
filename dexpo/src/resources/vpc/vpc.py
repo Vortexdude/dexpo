@@ -48,7 +48,7 @@ def vpc_handler(data: dict) -> dict:
     vpc_obj = VpcResource(**data)
     vpcs = vpc_obj.validate()
     if not vpcs:
-        print("No Vpc found under the name and CIDR block")
+        print(f"No Vpc found under the name {data['name']} and CIDR block {data['cidr_block']}")
         #  Handle the exiting or skipping form here
     for vpc in vpcs:
         _vpc_state[vpc['VpcId']] = vpc

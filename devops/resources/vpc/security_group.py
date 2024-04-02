@@ -26,8 +26,6 @@ class SecurityGroup(Base, BaseAbstractmethod):
         self.sg_availability = False
 
     def validate(self):
-        message = ''
-        message = f'Security_Group {self.name} not exist'
         for ec2_security_group in self.client.describe_security_groups()['SecurityGroups']:
             if self.name == ec2_security_group['GroupName']:
                 self.id = ec2_security_group['GroupId']
