@@ -43,6 +43,6 @@ def subnet_validator(data: dict) -> dict:
     if not subnets:
         print("No Subnets found under the name tag " + data['name'])
     for subnet in subnets:
-        _subnet_state['SubnetId'] = subnet
+        _subnet_state[data['name']] = subnet
 
     return _subnet_state

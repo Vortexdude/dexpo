@@ -21,17 +21,17 @@ class Base:
 class BaseAbstractmethod(metaclass=ABCMeta):
 
     @abstractmethod
-    def validate(self):
+    def validate(self, *args, **kwargs):
         pass
 
     @abstractmethod
-    def to_dict(self, prop: dict):
+    def to_dict(self, *args, **kwargs):
         pass
 
     @abstractmethod
-    def create(self):
+    def create(self, *args, **kwargs):
         pass
 
     @abstractmethod
-    def delete(self):
+    def delete(self, *args, **kwargs):
         pass

@@ -34,6 +34,6 @@ def internet_gateway_validator(data: dict):
     if not igs:
         print("No Internet Gateway found under the Name tag " + data['name'])
     for ig in igs:
-        ig_state[ig['InternetGatewayId']] = ig
+        ig_state[data['name']] = ig
 
     return ig_state

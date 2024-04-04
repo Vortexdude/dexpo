@@ -43,6 +43,6 @@ def security_group_validator(data: dict) -> dict:
     if not security_groups:
         print("No Security Group found under the name tag " + data['name'])
     for security_group in security_groups:
-        _security_group_state['GroupId'] = security_group
+        _security_group_state[data['name']] = security_group
 
     return _security_group_state

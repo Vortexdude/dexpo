@@ -13,7 +13,21 @@ class VpcResource(Base, BaseAbstractmethod):
         super().__init__(region=region)
 
     def create(self):
-        pass
+        """launch the vpc if the vpc not available"""
+
+        if self.state == "present":
+            response = self.client.create_vpc(CidrBlock=self.cidr_block)
+            vpc_id = response['Vpc']['VpcId']
+            self._resource = self.resource.Vpc(vpc_id)
+            self._resource.wait_until_available()
+            self._resource.create_tags(
+                Tags=[{
+                    "Key": "Name",
+                    "Value": self.name
+                }]
+            )  # adding name to the VPC
+
+            print(f"Vpc {self.name} Created Successfully!")
 
     def validate(self) -> list:
         """Check the availability of the vpc with certain parameter like cidr, vpc_id"""
@@ -42,6 +56,8 @@ class VpcResource(Base, BaseAbstractmethod):
     def to_dict(self, prop: dict):
         pass
 
+    def xResource(self, id: str):
+        return self.resource.Vpc(id)
 
 def vpc_validator(data: dict) -> dict:
     _vpc_state = {}
@@ -51,6 +67,11 @@ def vpc_validator(data: dict) -> dict:
         print(f"No Vpc found under the name {data['name']} and CIDR block {data['cidr_block']}")
         #  Handle the exiting or skipping form here
     for vpc in vpcs:
-        _vpc_state[vpc['VpcId']] = vpc
+        _vpc_state[data['name']] = vpc
 
     return _vpc_state
+
+
+def create_vpc(data: dict):
+    vpc_obj = VpcResource(**data)
+    vpc_obj.create()
