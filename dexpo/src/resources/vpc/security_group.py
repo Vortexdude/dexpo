@@ -18,16 +18,41 @@ class SecurityGroup(Base, BaseAbstractmethod):
         self.permissions = permissions
         self.my_ip = get('https://api.ipify.org/').text
 
-    def validate(self) -> list:
+    def validate(self) -> dict:
         sg_groups = []
         for ec2_security_group in self.client.describe_security_groups()['SecurityGroups']:
             if self.name == ec2_security_group['GroupName']:
                 sg_groups.append(ec2_security_group)
+        if not sg_groups:
+            return {}
+        else:
+            return sg_groups[0]
 
-        return sg_groups
+    def create(self, vpc_id):
+        secGroup = self.resource.create_security_group(
+            GroupName=self.name,
+            Description="%s" % self.description,
+            VpcId=vpc_id,
+            TagSpecifications=[{
+                "ResourceType": 'security-group',
+                "Tags": [{
+                    "Key": "Name",
+                    "Value": self.name
+                }]
+            }]
+        )
 
-    def create(self):
-        pass
+        if secGroup.id:
+            secGroup.authorize_ingress(
+                IpPermissions=self.permissions
+            )
+            print(f'Security Group {self.name} Created Successfully!')
+            self.id = secGroup.id
+            self._resource = self.resource.SecurityGroup(self.id)
+        else:
+            print('Error while creating ingress rule in the security Group')
+
+        return secGroup.id
 
     def delete(self):
         pass
@@ -39,10 +64,17 @@ class SecurityGroup(Base, BaseAbstractmethod):
 def security_group_validator(data: dict) -> dict:
     _security_group_state = {}
     sg_obj = SecurityGroup(**data)
-    security_groups = sg_obj.validate()
-    if not security_groups:
+    security_group = sg_obj.validate()
+    if not security_group:
         print("No Security Group found under the name tag " + data['name'])
-    for security_group in security_groups:
-        _security_group_state[data['name']] = security_group
+        return {}
 
-    return _security_group_state
+    resource = sg_obj.resource.SecurityGroup(security_group['GroupId'])
+    security_group.update({'resource': resource})
+    return security_group
+
+
+def create_security_group(data: dict, vpc_id) -> tuple:
+    sg_object = SecurityGroup(**data)
+    sg_id = sg_object.create(vpc_id)
+    return sg_id, sg_object.resource.SecurityGroup(sg_id)

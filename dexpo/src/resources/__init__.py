@@ -2,7 +2,7 @@ from .vpc.vpc import vpc_validator, create_vpc
 from .vpc.route_table import route_table_validator, create_route_table
 from .vpc.ig import internet_gateway_validator, create_internet_gateway
 from .vpc.subnet import subnet_validator, create_subnet
-from .vpc.security_group import security_group_validator
+from .vpc.security_group import security_group_validator, create_security_group
 from dexpo.src.lib.utils import save_to_file, load_json
 
 
@@ -75,9 +75,12 @@ class Controller(object):
 
             resourceMan.add_resource('sb', subnet_data)
 
+            security_group_data = {}
             for sgi, sg_data in enumerate(vpc_data['security_groups']):
                 module_sg_data = security_group_validator(sg_data)
                 if module_sg_data:
+                    _security_group_data = {'id': module_sg_data['GroupId'], 'resource': module_sg_data['resource']}
+                    del module_sg_data['resource']
                     vpc_data['security_groups'][sgi].update(module_sg_data)
 
             _vpsStates.append(vpc_data)
@@ -115,6 +118,7 @@ class Controller(object):
                     route_table_data.update({rt['name']: _rt_data})
             resourceMan.add_resource('rt', route_table_data)
 
+            subnet_data = {}
             for subnet in vpc_data['subnets']:
                 if 'SubnetId' not in subnet:
                     vpc_resource = resourceMan.resources['vpc']
@@ -122,11 +126,19 @@ class Controller(object):
                     rt_resource = resourceMan.resources['rt'][associate_route_table]['resource']
                     print("Creating Subnet " + subnet['name'])
                     sb_id, sb_resource = create_subnet(subnet, vpc_resource, rt_resource)
+                    _rt_data = {'id': sb_id, 'resource': sb_resource}
+                    subnet_data.update({subnet['name']: _rt_data})
+            resourceMan.add_resource('sb', subnet_data)
 
+            security_group_data = {}
             for sg in vpc_data['security_groups']:
-                sg_name = sg['name']
-                if sg_name not in sg:
-                    print("Creating Subnet " + sg_name)
+                if 'GroupId' not in sg:
+                    print("Creating Subnet " + sg['name'])
+                    vpc_id = resourceMan.resources['VpcId']
+                    sg_id, sg_resource = create_security_group(sg, vpc_id)
+                    _sg_data = {'id': sg_id, 'resource': sg_resource}
+                    security_group_data.update({sg['name']: _sg_data})
+            resourceMan.add_resource('sg', security_group_data)
 
     def destroy(self):
         print('destroying...')
