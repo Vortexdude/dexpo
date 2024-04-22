@@ -5,11 +5,6 @@ usage() {
   exit 1
 }
 
-if [ "$1" != "--apply" ] && [ "$1" != "--destroy" ]; then
-  echo "Invalid Argument: $1"
-  usage
-fi
-
 # create virtual environment
 activating_venv() {
   source .venv/bin/activate
@@ -25,7 +20,7 @@ main() {
     echo "Activating New virtual environment ... .. ."
     activating_venv
   else
-    echo "Virtual Environment is activated"
+    echo "Virtual Environment is already activated"
   fi
 
   case $1 in
@@ -33,7 +28,7 @@ main() {
       python3 dexpo/main.py --apply ;;
 
     --destroy)
-      python3 dexpo/main.py --apply ;;
+      python3 dexpo/main.py --destroy ;;
 
     *)
       usage
