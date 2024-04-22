@@ -1,18 +1,20 @@
 from dexpo.src.resources.main import Base, BaseAbstractmethod
+from botocore.exceptions import ClientError
 
 
 class Subnet(Base, BaseAbstractmethod):
 
-    def __init__(self, name=None, state=None, dry_run=False, cidr=None, route_table=None, region='ap-south-1', zone='a'):
+    def __init__(self, name=None, deploy=None, dry_run=False, cidr=None, route_table=None, region='ap-south-1',
+                 zone='a'):
         super().__init__(region=region)
         self.route_table = route_table
         self.name = name
-        self.state = state
+        self.deploy = deploy
         self.dry_run = dry_run
         self.zone = zone
         self.cidr = cidr
 
-    def validate(self) -> list:
+    def validate(self) -> dict:
         response = self.client.describe_subnets(
             Filters=[
                 {
@@ -23,11 +25,35 @@ class Subnet(Base, BaseAbstractmethod):
                 },
             ],
         )
+        if not response['Subnets']:
+            return {}
 
-        return response['Subnets']
+        return response['Subnets'][0]
 
-    def create(self):
-        pass
+    def create(self, vpc_resource, rt_resource):
+        if self.deploy:
+            try:
+                subnet = vpc_resource.create_subnet(
+                    CidrBlock=self.cidr,
+                    AvailabilityZone=f"{self.region}{self.zone}"
+                )
+
+                subnet.create_tags(
+                    Tags=[{
+                        "Key": "Name",
+                        "Value": self.name
+                    }]
+                )
+
+                rt_resource.associate_with_subnet(SubnetId=subnet.id)
+                print(f"Subnet {self.name} created successfully!")
+                return subnet.id
+                # _resource = self.resource.Subnet(subnet.id)
+
+            except ClientError as e:
+                if e.response['Error']['Code'] == 'InvalidSubnet.Conflict':
+                    print(f"Subnet {self.name} already exist")
+                    print(f"{e= }")
 
     def delete(self):
         pass
@@ -37,12 +63,18 @@ class Subnet(Base, BaseAbstractmethod):
 
 
 def subnet_validator(data: dict) -> dict:
-    _subnet_state = {}
     sb_obj = Subnet(**data)
-    subnets = sb_obj.validate()
-    if not subnets:
+    subnet = sb_obj.validate()
+    if not subnet:
         print("No Subnets found under the name tag " + data['name'])
-    for subnet in subnets:
-        _subnet_state[data['name']] = subnet
+        return {}
 
-    return _subnet_state
+    resource = sb_obj.resource.Subnet(subnet['SubnetId'])
+    subnet.update({'resource': resource})
+    return subnet
+
+
+def create_subnet(data: dict, vpc_resource, rt_resource) -> tuple:
+    sb_object = Subnet(**data)
+    sb_id = sb_object.create(vpc_resource, rt_resource)
+    return sb_id, sb_object.resource.Subnet(sb_id)

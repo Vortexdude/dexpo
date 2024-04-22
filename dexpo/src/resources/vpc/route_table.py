@@ -2,35 +2,41 @@ from dexpo.src.resources.main import Base, BaseAbstractmethod
 
 
 class RouteTable(Base, BaseAbstractmethod):
-    def __init__(self, name=None, state=None, dry_run=False, region="ap-south-1", DestinationCidrBlock=None):
+    def __init__(self, name=None, deploy=None, dry_run=False, region="ap-south-1", DestinationCidrBlock=None):
+        self.id = ''
         self.name = name
-        self.state = state
+        self.deploy = deploy
         self.dry_run = dry_run
         self.DestinationCidrBlock = DestinationCidrBlock
         self.region = region
         super().__init__(region=region)
 
-    def validate(self):
+    def validate(self) -> dict:
         response = self.client.describe_route_tables(Filters=[{
             "Name": "tag:Name",
             "Values": [self.name]
         }])
-        return response['RouteTables']
+        if not response['RouteTables']:
+            return {}
+        else:
+            return response['RouteTables'][0]
 
-    def create(self, vpc_resource):
-        if self.state == "present":
+    def create(self, vpc_resource, ig_id: str):
+        if self.deploy:
             routeTable = vpc_resource.create_route_table()
             routeTable.create_tags(Tags=[{
                 "Key": "Name",
                 "Value": self.name
             }])
-
             self.id = str(routeTable.id)
-            if internet_gateway_id:
+            if ig_id:
                 routeTable.create_route(
                     DestinationCidrBlock="0.0.0.0/0",
-                    GatewayId=internet_gateway_id
+                    GatewayId=ig_id
                 )
+
+                print(f"Route Table {self.name} Created Successfully!")
+            return self.id
 
     def delete(self):
         pass
@@ -40,17 +46,19 @@ class RouteTable(Base, BaseAbstractmethod):
 
 
 def route_table_validator(data: dict) -> dict:
-    _rt_state = {}
     rt_obj = RouteTable(**data)
-    rts = rt_obj.validate()
-    if not rts:
+    rt = rt_obj.validate()
+    if not rt:
         print("No Route Table found under the Name tag " + data['name'])
         #  Handle the exiting or skipping form here
-    for rt in rts:
-        _rt_state[data['name']] = rt
+        return {}
 
-    return _rt_state
+    resource = rt_obj.resource.RouteTable(rt['RouteTableId'])
+    rt.update({'resource': resource})
+    return rt
 
 
-def create_route_table(data: dict):
-    pass
+def create_route_table(data: dict, vpc_resource, ig_id) -> tuple:
+    rt_obj = RouteTable(**data)
+    rt_id = rt_obj.create(vpc_resource, ig_id)
+    return rt_id, rt_obj.resource.RouteTable(rt_id)

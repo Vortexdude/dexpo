@@ -2,28 +2,26 @@ from pydantic import BaseModel
 from typing import List, Optional
 
 
-class Vpc(BaseModel):
+class BaseClass(BaseModel):
     name: str
-    state: str
+    deploy: bool
+
+
+class Vpc(BaseClass):
     dry_run: bool
     region: str
-    cidr_block: str
+    CidrBlock: str
 
 
-class RouteTable(BaseModel):
-    name: str
-    state: str
+class RouteTable(BaseClass):
     DestinationCidrBlock: Optional[str] = None
 
 
-class InternetGateway(BaseModel):
-    name: str
-    state: str
+class InternetGateway(BaseClass):
+    pass
 
 
-class Subnet(BaseModel):
-    name: str
-    state: str
+class Subnet(BaseClass):
     cidr: str
     zone: str
     route_table: str
@@ -41,10 +39,8 @@ class SecurityGroupPermission(BaseModel):
     IpRanges: List[SecurityGroupPermissionIpRange]
 
 
-class SecurityGroup(BaseModel):
-    name: str
+class SecurityGroup(BaseClass):
     description: str
-    state: str
     permissions: list[SecurityGroupPermission]
 
 

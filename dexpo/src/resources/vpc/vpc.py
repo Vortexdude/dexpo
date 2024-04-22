@@ -3,24 +3,25 @@ from dexpo.src.resources.main import Base, BaseAbstractmethod
 
 class VpcResource(Base, BaseAbstractmethod):
 
-    def __init__(self, name=None, state=False, dry_run=False, cidr_block=None, region='ap-south-1'):
+    def __init__(self, name=None, deploy=False, dry_run=False, CidrBlock=None, region='ap-south-1'):
         self.name = name
-        self.state = state
+        self.deploy = deploy
         self.dry_run = dry_run
-        self.cidr_block = cidr_block
+        self.CidrBlock = CidrBlock
         self.region = region
         self.filters = []
+        self.vpc_resource = None
         super().__init__(region=region)
 
-    def create(self):
+    def create(self) -> str:
         """launch the vpc if the vpc not available"""
 
-        if self.state == "present":
-            response = self.client.create_vpc(CidrBlock=self.cidr_block)
+        if self.deploy:
+            response = self.client.create_vpc(CidrBlock=self.CidrBlock)
             vpc_id = response['Vpc']['VpcId']
-            self._resource = self.resource.Vpc(vpc_id)
-            self._resource.wait_until_available()
-            self._resource.create_tags(
+            self.vpc_resource = self.resource.Vpc(vpc_id)
+            self.vpc_resource.wait_until_available()
+            self.vpc_resource.create_tags(
                 Tags=[{
                     "Key": "Name",
                     "Value": self.name
@@ -28,14 +29,15 @@ class VpcResource(Base, BaseAbstractmethod):
             )  # adding name to the VPC
 
             print(f"Vpc {self.name} Created Successfully!")
+            return vpc_id
 
-    def validate(self) -> list:
+    def validate(self) -> dict:
         """Check the availability of the vpc with certain parameter like cidr, vpc_id"""
 
-        if self.cidr_block:
+        if self.CidrBlock:
             self.filters.append({
                 'Name': 'cidr-block-association.cidr-block',
-                'Values': [self.cidr_block]
+                'Values': [self.CidrBlock]
             })
 
         elif self.name:
@@ -48,7 +50,10 @@ class VpcResource(Base, BaseAbstractmethod):
             print("Something not parsed into the function")
 
         response = self.client.describe_vpcs(Filters=self.filters)
-        return response['Vpcs']
+        if not response['Vpcs']:
+            return {}
+
+        return response['Vpcs'][0]
 
     def delete(self):
         pass
@@ -59,19 +64,20 @@ class VpcResource(Base, BaseAbstractmethod):
     def xResource(self, id: str):
         return self.resource.Vpc(id)
 
+
 def vpc_validator(data: dict) -> dict:
-    _vpc_state = {}
     vpc_obj = VpcResource(**data)
-    vpcs = vpc_obj.validate()
-    if not vpcs:
-        print(f"No Vpc found under the name {data['name']} and CIDR block {data['cidr_block']}")
+    vpc = vpc_obj.validate()
+    if not vpc:
+        print(f"No Vpc found under the name {data['name']} and CIDR block {data['CidrBlock']}")
+        return {}
         #  Handle the exiting or skipping form here
-    for vpc in vpcs:
-        _vpc_state[data['name']] = vpc
+    resource = vpc_obj.resource.Vpc(vpc['VpcId'])
+    vpc.update({'resource': resource})
+    return vpc
 
-    return _vpc_state
 
-
-def create_vpc(data: dict):
+def create_vpc(data: dict) -> tuple:
     vpc_obj = VpcResource(**data)
-    vpc_obj.create()
+    vpc_id = vpc_obj.create()
+    return vpc_id, vpc_obj.vpc_resource

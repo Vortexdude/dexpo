@@ -6,13 +6,13 @@ class SecurityGroup(Base, BaseAbstractmethod):
 
     def __init__(self,
                  name: str = None,
-                 state: str = False,
+                 deploy: str = False,
                  dry_run: bool = False,
                  description: str = "",
                  permissions: list = None):
         super().__init__(region='ap-south-1')
         self.name = name
-        self.state = state
+        self.deploy = deploy
         self.dry_run = dry_run
         self.description = description
         self.permissions = permissions
