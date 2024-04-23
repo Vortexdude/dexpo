@@ -61,6 +61,16 @@ class ValidatorClass:
 
         return _id, resource
 
+    def _global_validator(self, data, validator_function) -> tuple[dict, dict]:
+        module_resource_data = validator_function(data)
+        if not module_resource_data:
+            return {}, {}
+
+        _id, _resource = self.extractor(module_resource_data)
+        _resource_formatted_data = rm.formatter(name=data['name'], id=_id, resource=_resource)
+        del module_resource_data['resource']
+        return module_resource_data, _resource_formatted_data
+
     def v_vpc(self):
         module_data, rm_vpc_data = self._global_validator(self.vpc, vpc_validator)
         rm.data.update({'vpc': rm_vpc_data})
@@ -74,16 +84,6 @@ class ValidatorClass:
             self.route_tables[rt_index].update(module_data)
 
         rm.data.update({'rt': rm_route_table_data})
-
-    def _global_validator(self, data, validator_function) -> tuple[dict, dict]:
-        module_resource_data = validator_function(data)
-        if not module_resource_data:
-            return {}, {}
-
-        _id, _resource = self.extractor(module_resource_data)
-        _resource_formatted_data = rm.formatter(name=data['name'], id=_id, resource=_resource)
-        del module_resource_data['resource']
-        return module_resource_data, _resource_formatted_data
 
     def v_internet_gateway(self):
         module_data, rm_ig_data = self._global_validator(self.internet_gateway, internet_gateway_validator)
