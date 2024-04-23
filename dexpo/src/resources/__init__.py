@@ -8,137 +8,190 @@ from dexpo.src.lib.utils import save_to_file, load_json
 
 class ResourceManager:
     def __init__(self):
-        self.resources = {}
+        self.data = {}
 
-    def add_resource(self, key, resource):
-        self.resources[key] = resource
-
-    def get_resource(self, key):
-        return self.resources.get(key)
-
-    def remove_resource(self, key):
-        if key in self.resources:
-            del self.resources[key]
-
-    def modify_resource(self, key, new_resource):
-        if key in self.resources:
-            self.resources[key] = new_resource
+    @staticmethod
+    def formatter(name, id, resource):
+        return {name: {"id": id, 'resource': resource}}
 
 
-resourceMan = ResourceManager()
+rm = ResourceManager()
+
+
+class ValidatorClass:
+    def __init__(self, vpc_data):
+        self.vpc_data: dict = vpc_data
+        self.cloud_state = self.vpc_data.copy()
+        self.vpc: dict = self.vpc_data['vpc']
+        self.route_tables: list = self.vpc_data['route_tables']
+        self.internet_gateway: dict = self.vpc_data['internet_gateway']
+        self.subnets: list = self.vpc_data['subnets']
+        self.security_groups: list = self.vpc_data['security_groups']
+        if 'name' in self.vpc:
+            print("validating VPC . . .")
+            self.v_vpc()
+        # if 'name' in self.route_tables:
+        if any('name' in item for item in self.route_tables):
+            print("validating Route Tables . . .")
+            self.v_route_tables()
+        if 'name' in self.internet_gateway:
+            print("validating Internet Gateway . . .")
+            self.v_internet_gateway()
+        if any('name' in item for item in self.subnets):
+            print("validating subnets . . .")
+            self.v_subnet()
+        if any('name' in item for item in self.security_groups):
+            print("validating security Groups . . .")
+            self.v_security_group()
+
+    @staticmethod
+    def extractor(module_data):
+        resource = module_data['resource']
+        _id: str = ''
+        if 'VpcId' in module_data:
+            _id = module_data['VpcId']
+
+        if 'RouteTableId' in module_data:
+            _id = module_data['RouteTableId']
+
+        if 'SubnetId' in module_data:
+            _id = module_data['SubnetId']
+
+        if 'GroupId' in module_data:
+            _id = module_data['GroupId']
+
+        return _id, resource
+
+    def v_vpc(self):
+        module_vpc_data = vpc_validator(self.vpc_data['vpc'])
+        if not module_vpc_data:
+            return
+
+        vpc_id, vpc_resource = self.extractor(module_vpc_data)
+        vpc_data = rm.formatter(name=self.vpc['name'], id=vpc_id, resource=vpc_resource)
+        rm.data.update({'vpc': vpc_data})
+        del module_vpc_data['resource']
+        self.vpc.update(module_vpc_data)  # get vpc key and update the data
+        # self.vpc_data['vpc'].update(module_vpc_data)  # get vpc key and update the data
+
+    def v_route_tables(self):
+        rm_route_table_data = {}
+        for rt_index, rt_data in enumerate(self.route_tables):
+            module_data, _rm_rt_data = self._global_validator(rt_data, route_table_validator)
+            rm_route_table_data.update(_rm_rt_data)
+            self.route_tables[rt_index].update(module_data)
+
+        rm.data.update({'rt': rm_route_table_data})
+
+    def _global_validator(self, data, validator_function) -> tuple[dict, dict]:
+        module_resource_data = validator_function(data)
+        if not module_resource_data:
+            return {}, {}
+
+        _id, _resource = self.extractor(module_resource_data)
+        _resource_formatted_data = rm.formatter(name=data['name'], id=_id, resource=_resource)
+        del module_resource_data['resource']
+        return module_resource_data, _resource_formatted_data
+
+    def v_internet_gateway(self):
+
+        module_ig_data = internet_gateway_validator(self.vpc_data['internet_gateway'])
+        if not module_ig_data:
+            return
+
+        ig_id = module_ig_data['InternetGatewayId']
+        _ig_data = rm.formatter(
+            name=self.internet_gateway['name'], id=ig_id, resource=module_ig_data['resource']
+        )
+        del module_ig_data['resource']
+        self.internet_gateway.update(module_ig_data)
+        rm.data.update({'ig': _ig_data})
+
+    def v_subnet(self):
+        subnet_data = {}
+        for sb_index, sb_data in enumerate(self.subnets):
+            module_data, _rm_sb_data = self._global_validator(sb_data, subnet_validator)
+            self.subnets[sb_index].update(module_data)
+        rm.data.update({'sb': subnet_data})
+
+    def v_security_group(self):
+        security_group_data = {}
+        for sg_index, sg_data in enumerate(self.security_groups):
+            module_data, _rm_sg_data = self._global_validator(sg_data, security_group_validator)
+            self.security_groups[sg_index].update(module_data)
+        rm.data.update({'sg': security_group_data})
 
 
 class Controller(object):
     def __init__(self, data=None):
         self.data = data.model_dump() if data else {}
 
+    @staticmethod
+    def store_state(file='state.json', data=None):
+        save_to_file(file, {"vpcs": data})
+
     def validate(self):
         _vpsStates = []
         for vpc_data in self.data['vpcs']:
-            module_vpc_data = vpc_validator(vpc_data['vpc'])
-            if module_vpc_data:
-                vpc_id = module_vpc_data['VpcId']
-                vpc_resource = module_vpc_data['resource']
-                resourceMan.add_resource('VpcId', vpc_id)
-                resourceMan.add_resource('vpc', vpc_resource)
-                del module_vpc_data['resource']
-                vpc_data['vpc'].update(module_vpc_data)
-
-            route_table_data = {}
-            for rt_index, rt_data in enumerate(vpc_data['route_tables']):
-                module_rt_data = route_table_validator(rt_data)
-                if module_rt_data:
-                    _rt_data = {'id': module_rt_data['RouteTableId'], 'resource': module_rt_data['resource']}
-                    route_table_data.update({rt_data['name']: _rt_data})
-                    vpc_data['route_tables'][rt_index].update(module_rt_data)
-                    del vpc_data['route_tables'][rt_index]['resource']
-            resourceMan.add_resource('rt', route_table_data)
-
-            module_ig_data = internet_gateway_validator(vpc_data['internet_gateway'])
-            if module_ig_data:
-                ig_id = module_ig_data['InternetGatewayId']
-                resourceMan.add_resource('InternetGatewayId', ig_id)
-                resourceMan.add_resource('ig', module_ig_data['resource'])
-                del module_ig_data['resource']
-                vpc_data['internet_gateway'].update(module_ig_data)
-                # here we use 0 because we are using only one internet gateway per vpc
-                # but we will find lots of it during the validate command
-
-            subnet_data = {}
-            for sb_index, sb_data in enumerate(vpc_data['subnets']):
-                module_sb_data = subnet_validator(sb_data)
-                if module_sb_data:
-                    _sb_data = {'id': module_sb_data['SubnetId'], 'resource': module_sb_data['resource']}
-                    subnet_data.update({sb_data['name']: _sb_data})
-                    del module_sb_data['resource']
-                    vpc_data['subnets'][sb_index].update(module_sb_data)
-
-            resourceMan.add_resource('sb', subnet_data)
-
-            security_group_data = {}
-            for sgi, sg_data in enumerate(vpc_data['security_groups']):
-                module_sg_data = security_group_validator(sg_data)
-                if module_sg_data:
-                    _security_group_data = {'id': module_sg_data['GroupId'], 'resource': module_sg_data['resource']}
-                    del module_sg_data['resource']
-                    vpc_data['security_groups'][sgi].update(module_sg_data)
-
+            vvs = ValidatorClass(vpc_data)
             _vpsStates.append(vpc_data)
-        # print(_vpsStates)
-        save_to_file("state.json", {"vpcs": _vpsStates})
+
+        self.store_state(data=_vpsStates)
+        print(_vpsStates)
 
     def apply(self):
-        print(resourceMan.__dict__)
-        data = load_json('state.json')
-
-        for vpc_data in data['vpcs']:
-            vpc_name = vpc_data['vpc']['name']
-            if 'VpcId' not in vpc_data['vpc']:
-                print("Creating VPC " + vpc_name)
-                vpc_id, vpc_resource = create_vpc(vpc_data['vpc'])
-                resourceMan.add_resource('vpc', vpc_resource)
-                resourceMan.add_resource('VpcId', vpc_id)
-
-            ig_name = vpc_data['internet_gateway']['name']
-            if 'InternetGatewayId' not in vpc_data['internet_gateway']:
-                print("Creating Internet Gateway " + ig_name)
-                vpc_resource = resourceMan.resources['vpc']
-                ig_id, ig_resource = create_internet_gateway(vpc_data['internet_gateway'], vpc_resource)
-                resourceMan.add_resource('ig', ig_resource)
-                resourceMan.add_resource('InternetGatewayId', ig_id)
-
-            route_table_data = {}
-            for rt in vpc_data['route_tables']:
-                if 'RouteTableId' not in rt:
-                    vpc_resource = resourceMan.resources['vpc']
-                    ig_id = resourceMan.resources['InternetGatewayId']
-                    print("Creating Route Table " + rt['name'])
-                    rt_id, rt_resource = create_route_table(rt, vpc_resource, ig_id)
-                    _rt_data = {'id': rt_id, 'resource': rt_resource}
-                    route_table_data.update({rt['name']: _rt_data})
-            resourceMan.add_resource('rt', route_table_data)
-
-            subnet_data = {}
-            for subnet in vpc_data['subnets']:
-                if 'SubnetId' not in subnet:
-                    vpc_resource = resourceMan.resources['vpc']
-                    associate_route_table = subnet['route_table']
-                    rt_resource = resourceMan.resources['rt'][associate_route_table]['resource']
-                    print("Creating Subnet " + subnet['name'])
-                    sb_id, sb_resource = create_subnet(subnet, vpc_resource, rt_resource)
-                    _rt_data = {'id': sb_id, 'resource': sb_resource}
-                    subnet_data.update({subnet['name']: _rt_data})
-            resourceMan.add_resource('sb', subnet_data)
-
-            security_group_data = {}
-            for sg in vpc_data['security_groups']:
-                if 'GroupId' not in sg:
-                    print("Creating Subnet " + sg['name'])
-                    vpc_id = resourceMan.resources['VpcId']
-                    sg_id, sg_resource = create_security_group(sg, vpc_id)
-                    _sg_data = {'id': sg_id, 'resource': sg_resource}
-                    security_group_data.update({sg['name']: _sg_data})
-            resourceMan.add_resource('sg', security_group_data)
+        pass
+        # print(resourceMan.__dict__)
+        # data = load_json('state.json')
+        #
+        # for vpc_data in data['vpcs']:
+        #     vpc_name = vpc_data['vpc']['name']
+        #     if 'VpcId' not in vpc_data['vpc']:
+        #         print("Creating VPC " + vpc_name)
+        #         vpc_id, vpc_resource = create_vpc(vpc_data['vpc'])
+        #         resourceMan.add_resource('vpc', vpc_resource)
+        #         resourceMan.add_resource('VpcId', vpc_id)
+        #
+        #     ig_name = vpc_data['internet_gateway']['name']
+        #     if 'InternetGatewayId' not in vpc_data['internet_gateway']:
+        #         print("Creating Internet Gateway " + ig_name)
+        #         vpc_resource = resourceMan.resources['vpc']
+        #         ig_id, ig_resource = create_internet_gateway(vpc_data['internet_gateway'], vpc_resource)
+        #         resourceMan.add_resource('ig', ig_resource)
+        #         resourceMan.add_resource('InternetGatewayId', ig_id)
+        #
+        #     route_table_data = {}
+        #     for rt in vpc_data['route_tables']:
+        #         if 'RouteTableId' not in rt:
+        #             vpc_resource = resourceMan.resources['vpc']
+        #             ig_id = resourceMan.resources['InternetGatewayId']
+        #             print("Creating Route Table " + rt['name'])
+        #             rt_id, rt_resource = create_route_table(rt, vpc_resource, ig_id)
+        #             _rt_data = {'id': rt_id, 'resource': rt_resource}
+        #             route_table_data.update({rt['name']: _rt_data})
+        #     resourceMan.add_resource('rt', route_table_data)
+        #
+        #     subnet_data = {}
+        #     for subnet in vpc_data['subnets']:
+        #         if 'SubnetId' not in subnet:
+        #             vpc_resource = resourceMan.resources['vpc']
+        #             associate_route_table = subnet['route_table']
+        #             rt_resource = resourceMan.resources['rt'][associate_route_table]['resource']
+        #             print("Creating Subnet " + subnet['name'])
+        #             sb_id, sb_resource = create_subnet(subnet, vpc_resource, rt_resource)
+        #             _rt_data = {'id': sb_id, 'resource': sb_resource}
+        #             subnet_data.update({subnet['name']: _rt_data})
+        #     resourceMan.add_resource('sb', subnet_data)
+        #
+        #     security_group_data = {}
+        #     for sg in vpc_data['security_groups']:
+        #         if 'GroupId' not in sg:
+        #             print("Creating Subnet " + sg['name'])
+        #             vpc_id = resourceMan.resources['VpcId']
+        #             sg_id, sg_resource = create_security_group(sg, vpc_id)
+        #             _sg_data = {'id': sg_id, 'resource': sg_resource}
+        #             security_group_data.update({sg['name']: _sg_data})
+        #     resourceMan.add_resource('sg', security_group_data)
 
     def destroy(self):
         print('destroying...')
