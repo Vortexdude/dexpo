@@ -30,7 +30,6 @@ class ValidatorClass:
         if 'name' in self.vpc:
             print("validating VPC . . .")
             self.v_vpc()
-        # if 'name' in self.route_tables:
         if any('name' in item for item in self.route_tables):
             print("validating Route Tables . . .")
             self.v_route_tables()
@@ -63,16 +62,9 @@ class ValidatorClass:
         return _id, resource
 
     def v_vpc(self):
-        module_vpc_data = vpc_validator(self.vpc_data['vpc'])
-        if not module_vpc_data:
-            return
-
-        vpc_id, vpc_resource = self.extractor(module_vpc_data)
-        vpc_data = rm.formatter(name=self.vpc['name'], id=vpc_id, resource=vpc_resource)
-        rm.data.update({'vpc': vpc_data})
-        del module_vpc_data['resource']
-        self.vpc.update(module_vpc_data)  # get vpc key and update the data
-        # self.vpc_data['vpc'].update(module_vpc_data)  # get vpc key and update the data
+        module_data, rm_vpc_data = self._global_validator(self.vpc, vpc_validator)
+        rm.data.update({'vpc': rm_vpc_data})
+        self.vpc.update(module_data)
 
     def v_route_tables(self):
         rm_route_table_data = {}
@@ -94,18 +86,9 @@ class ValidatorClass:
         return module_resource_data, _resource_formatted_data
 
     def v_internet_gateway(self):
-
-        module_ig_data = internet_gateway_validator(self.vpc_data['internet_gateway'])
-        if not module_ig_data:
-            return
-
-        ig_id = module_ig_data['InternetGatewayId']
-        _ig_data = rm.formatter(
-            name=self.internet_gateway['name'], id=ig_id, resource=module_ig_data['resource']
-        )
-        del module_ig_data['resource']
-        self.internet_gateway.update(module_ig_data)
-        rm.data.update({'ig': _ig_data})
+        module_data, rm_ig_data = self._global_validator(self.internet_gateway, internet_gateway_validator)
+        rm.data.update({'ig': rm_ig_data})
+        self.internet_gateway.update(module_data)
 
     def v_subnet(self):
         subnet_data = {}
