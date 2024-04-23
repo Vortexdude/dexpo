@@ -11,8 +11,8 @@ class ResourceManager:
         self.data = {}
 
     @staticmethod
-    def formatter(name, id, resource):
-        return {name: {"id": id, 'resource': resource}}
+    def formatter(name, _id, resource):
+        return {name: {"id": _id, 'resource': resource}}
 
 
 rm = ResourceManager()
@@ -38,7 +38,7 @@ class ValidatorClass:
             self.v_internet_gateway()
         if any('name' in item for item in self.subnets):
             print("validating subnets . . .")
-            self.v_subnet()
+            self.v_subnets()
         if any('name' in item for item in self.security_groups):
             print("validating security Groups . . .")
             self.v_security_group()
@@ -67,7 +67,7 @@ class ValidatorClass:
             return {}, {}
 
         _id, _resource = self.extractor(module_resource_data)
-        _resource_formatted_data = rm.formatter(name=data['name'], id=_id, resource=_resource)
+        _resource_formatted_data = rm.formatter(name=data['name'], _id=_id, resource=_resource)
         del module_resource_data['resource']
         return module_resource_data, _resource_formatted_data
 
@@ -76,24 +76,24 @@ class ValidatorClass:
         rm.data.update({'vpc': rm_vpc_data})
         self.vpc.update(module_data)
 
+    def v_internet_gateway(self):
+        module_data, rm_ig_data = self._global_validator(self.internet_gateway, internet_gateway_validator)
+        rm.data.update({'ig': rm_ig_data})
+        self.internet_gateway.update(module_data)
+
     def v_route_tables(self):
         rm_route_table_data = {}
         for rt_index, rt_data in enumerate(self.route_tables):
             module_data, _rm_rt_data = self._global_validator(rt_data, route_table_validator)
             rm_route_table_data.update(_rm_rt_data)
             self.route_tables[rt_index].update(module_data)
-
         rm.data.update({'rt': rm_route_table_data})
 
-    def v_internet_gateway(self):
-        module_data, rm_ig_data = self._global_validator(self.internet_gateway, internet_gateway_validator)
-        rm.data.update({'ig': rm_ig_data})
-        self.internet_gateway.update(module_data)
-
-    def v_subnet(self):
+    def v_subnets(self):
         subnet_data = {}
         for sb_index, sb_data in enumerate(self.subnets):
             module_data, _rm_sb_data = self._global_validator(sb_data, subnet_validator)
+            subnet_data.update(_rm_sb_data)
             self.subnets[sb_index].update(module_data)
         rm.data.update({'sb': subnet_data})
 
@@ -101,6 +101,7 @@ class ValidatorClass:
         security_group_data = {}
         for sg_index, sg_data in enumerate(self.security_groups):
             module_data, _rm_sg_data = self._global_validator(sg_data, security_group_validator)
+            security_group_data.update(_rm_sg_data)
             self.security_groups[sg_index].update(module_data)
         rm.data.update({'sg': security_group_data})
 
