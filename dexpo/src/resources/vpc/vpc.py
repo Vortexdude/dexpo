@@ -13,13 +13,12 @@ class VpcResource(Base, BaseAbstractmethod):
         self.vpc_resource = None
         super().__init__(region=region)
 
-    def create(self) -> str:
+    def create(self) -> dict:
         """launch the vpc if the vpc not available"""
 
         if self.deploy:
             response = self.client.create_vpc(CidrBlock=self.CidrBlock)
-            vpc_id = response['Vpc']['VpcId']
-            self.vpc_resource = self.resource.Vpc(vpc_id)
+            self.vpc_resource = self.resource.Vpc(response['Vpc']['VpcId'])
             self.vpc_resource.wait_until_available()
             self.vpc_resource.create_tags(
                 Tags=[{
@@ -29,7 +28,7 @@ class VpcResource(Base, BaseAbstractmethod):
             )  # adding name to the VPC
 
             print(f"Vpc {self.name} Created Successfully!")
-            return vpc_id
+            return response
 
     def validate(self) -> dict:
         """Check the availability of the vpc with certain parameter like cidr, vpc_id"""
@@ -77,7 +76,7 @@ def vpc_validator(data: dict) -> dict:
     return vpc
 
 
-def create_vpc(data: dict) -> tuple:
+def create_vpc(data: dict) -> tuple[dict, object]:
     vpc_obj = VpcResource(**data)
-    vpc_id = vpc_obj.create()
-    return vpc_id, vpc_obj.vpc_resource
+    response = vpc_obj.create()
+    return response, vpc_obj.vpc_resource

@@ -29,6 +29,7 @@ class RouteTable(Base, BaseAbstractmethod):
                 "Value": self.name
             }])
             self.id = str(routeTable.id)
+            print(f"{ig_id=}")
             if ig_id:
                 routeTable.create_route(
                     DestinationCidrBlock="0.0.0.0/0",

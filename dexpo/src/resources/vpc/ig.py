@@ -1,3 +1,23 @@
+"""
+Create an Internet Gateway and attach it to a specified VPC.
+
+Parameters:
+    self.name (str): The ID of the VPC to which the Internet Gateway will be attached.
+    self.deploy (bool):
+    self.dry_run (bool):
+    vpc_resource (object):
+Returns:
+    dict: A dictionary containing information about the created Internet Gateway.
+
+Raises:
+    botocore.exceptions.ClientError: If the Internet Gateway creation fails.
+
+Example:
+    >>> from path import create_internet_gateway
+    >>> ig_id, ig_resource = create_internet_gateway(data, vpc_resource)
+"""
+
+
 from dexpo.src.resources.main import Base, BaseAbstractmethod
 
 
@@ -19,7 +39,7 @@ class InternetGateway(Base, BaseAbstractmethod):
 
         return response['InternetGateways'][0]
 
-    def create(self, vpc_resource):
+    def create(self, vpc_resource) -> dict:
         response = self.client.create_internet_gateway(
             TagSpecifications=[{
                 "ResourceType": "internet-gateway",
@@ -37,7 +57,7 @@ class InternetGateway(Base, BaseAbstractmethod):
                 vpc_resource.attach_internet_gateway(InternetGatewayId=ig_id)
                 print(f"Internet Gateway {self.name} attached to vpc {ig_id} Successfully!")
 
-                return ig_id
+                return response
 
     def delete(self):
         pass
@@ -58,7 +78,7 @@ def internet_gateway_validator(data: dict) -> dict:
     return ig
 
 
-def create_internet_gateway(data: dict, vpc_resource) -> tuple:
+def create_internet_gateway(data: dict, vpc_resource) -> tuple[dict, object]:
     ig_obj = InternetGateway(**data)
-    id = ig_obj.create(vpc_resource)
-    return id, ig_obj.resource.InternetGateway(id)
+    response = ig_obj.create(vpc_resource)
+    return response, ig_obj.resource.InternetGateway(response['InternetGateway']['InternetGatewayId'])

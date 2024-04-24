@@ -104,14 +104,24 @@ class ValidateHandler:
             resource_data.update(_rm_data)
             data[index].update(module_data)
         rm.data.update({resource_key: resource_data})
-        # print(f"{rm.data['rt']=}")
 
 
 class DeployHandler:
     def __init__(self, data):
-        # {'data': {
-        # 'vpc': {'boto3-testing': {'id': 'vpc-004a2319d98ed2714', 'resource': ec2.Vpc(id='vpc-004a2319d98ed2714')}},
-        # 'rt': {}, 'ig': {}, 'sn': {}, 'sg': {}}}
+        # {
+        #     'data': {
+        #             'vpc': {
+        #                 'boto3-testing': {
+        #                     'id': 'vpc-004a2319d98ed2714',
+        #                     'resource': ec2.Vpc(id='vpc-004a2319d98ed2714')
+        #                 }
+        #             },
+        #             'rt': {},
+        #             'ig': {},
+        #             'sn': {},
+        #             'sg': {}
+        #      }
+        # }
 
         self.data = data
         self.cloud_state: dict = self.data.copy()
@@ -129,6 +139,14 @@ class DeployHandler:
         self.route_table_id: str = ''
         self.subnet_id: str = ''
 
+    @staticmethod
+    def store_state(resource_type: str, resource_name: str, resource_id: str, boto_resource):
+        rm.data.update({resource_type: rm.formatter(_id=resource_id, resource=boto_resource, name=resource_name)})
+
+    @staticmethod
+    def store_list_type_state(resource_type: str, data: dict):
+        rm.data.update({resource_type: data})
+
     def launch(self):
         if 'VpcId' not in self.vpc:
             self.x_vpc()
@@ -140,51 +158,45 @@ class DeployHandler:
         self.list_wrapper(self.subnets, 'SubnetId', 'sb', self.x_sb)
         self.list_wrapper(self.security_groups, 'GroupId', 'sg', self.x_sg)
 
-    @staticmethod
-    def list_wrapper(resource_list: list, identifier: str, resource_name: str, function):
+    def list_wrapper(self, resource_list: list, identifier: str, resource_type: str, function):
         global_resource_data = {}
         for resource in resource_list:
             if identifier not in resource:
                 _resource_data = function(data=resource)
                 global_resource_data.update(_resource_data)
         if global_resource_data != {}:
-            print("inside the wrong condition!")
-            rm.data.update({resource_name: global_resource_data})
+            self.store_list_type_state(resource_type=resource_type, data=global_resource_data)
 
     def x_vpc(self):
         vpc_name = self.vpc['name']
         print("Creating VPC " + vpc_name)
-        self.vpc_id, self.vpc_resource = create_vpc(self.vpc)
-        rm_vpc_data = rm.formatter(
-            name=vpc_name, _id=self.vpc_id, resource=self.vpc_resource
-        )
-        rm.data.update(
-            {'vpc': rm_vpc_data}
-        )
+        response, vpc_resource = create_vpc(self.vpc)
+        vpc_id = response['Vpc']['VpcId']  # response from the create method
+        self.store_state(resource_id=vpc_id, resource_type='vpc', resource_name=vpc_name, boto_resource=vpc_resource)
+        self.vpc.update(response)
 
     def x_ig(self):
         ig_name = self.internet_gateway['name']
         print("Creating Internet Gateway " + ig_name)
-        self.vpc_resource = rm.data['vpc'][self.vpc['name']]['resource']
-        self.internet_gateway_id, self.internet_gateway_resource = create_internet_gateway(
-            data=self.internet_gateway, vpc_resource=self.vpc_resource
+        vpc_resource = rm.data['vpc'][self.vpc['name']]['resource']  # get the vpc resource from resource manager
+        response, ig_resource = create_internet_gateway(
+            data=self.internet_gateway, vpc_resource=vpc_resource
         )
-        rm.data.update(
-            {
-                'ig': {
-                    ig_name: {
-                        'id': self.internet_gateway_id, 'resource': self.internet_gateway_resource
-                    }
-                }
-            }
-        )
+        ig_id = response['InternetGateway']['InternetGatewayId']
+        self.store_state(resource_name=ig_name, resource_type='ig', resource_id=ig_id, boto_resource=ig_resource)
+        self.internet_gateway.update(response)
 
     def x_rt(self, data):
         print("Creating Route Table " + data['name'])
-        self.route_table_id, self.route_table_resource = create_route_table(
-            data=data, vpc_resource=self.vpc_resource, ig_id=self.internet_gateway_id
+        if not data['DestinationCidrBlock']:  # check for private route that doesn't have the public route
+            self.internet_gateway_id = ''
+
+        vpc_resource = rm.data['vpc'][self.vpc['name']]['resource']
+        ig_id = rm.data['ig'][self.internet_gateway['name']]['id']
+        rt_id, rt_resource = create_route_table(
+            data=data, vpc_resource=vpc_resource, ig_id=ig_id
         )
-        return rm.formatter(name=data['name'], _id=self.route_table_id, resource=self.route_table_resource)
+        return rm.formatter(name=data['name'], _id=rt_id, resource=rt_resource)
 
     def x_sb(self, data):
         print("Creating Subnet " + data['name'])
@@ -203,6 +215,7 @@ class DeployHandler:
 class Controller(object):
     def __init__(self, data=None):
         self.data = data.model_dump() if data else {}
+        self.state_file = 'state.json'
 
     @staticmethod
     def store_state(file='state.json', data=None):
@@ -216,7 +229,7 @@ class Controller(object):
         self.store_state(data=_vpsStates)
 
     def apply(self):
-        data = load_json('state.json')
+        data = load_json(self.state_file)
         for vpc_data in data['vpcs']:
             dh = DeployHandler(data=vpc_data)
             dh.launch()
