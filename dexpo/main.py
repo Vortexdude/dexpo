@@ -1,4 +1,4 @@
-from dexpo.settings import args, initializer, CONF
+from dexpo.settings import logger, args, initializer, CONF
 from dexpo.src.resources import Controller
 
 
@@ -14,6 +14,8 @@ def main(action):
 
 
 if __name__ == "__main__":
+    logger.debug("Initializing project")
     initializer()
     _action = args.action
+    logger.debug(f"Action {_action}")
     main(_action)

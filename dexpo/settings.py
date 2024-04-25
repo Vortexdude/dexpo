@@ -1,57 +1,56 @@
 from dexpo.src.lib.parser import DexpoArgParser
-from dexpo.src.lib.utils import load_json
-from dexpo.src.lib.models import ConfigModel
-from dexpo.src.lib.utils import creds_validator, CONFIG_FILE_PATH
+from dexpo.src.lib.utils import get_conf
+from dexpo.src.lib.utils import validate_aws_credentials, DexLogger, Util
+import os
+
+project_name = 'dexpo'
+
+DEBUG = True
+
+if DEBUG:
+    log_level = 'debug'
+else:
+    log_level = 'info'
+
+project_home_dir_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+user_home_dir = os.path.expanduser('~')
+config_dir_path = os.path.join(project_home_dir_path, 'config', "config.json")
+state_file_path = os.path.join(project_home_dir_path, 'state.json')
+temp_state_file_path = os.path.join(project_home_dir_path, 'temp_state.json')
+
+loginit = DexLogger(log_level, project_name)
+logger = loginit.get_logger()
+
+logger.debug("Logging Initialize ... .. .")
+
+project_aws_credentials_path = os.path.join(project_home_dir_path, '.aws', 'credentials')
+user_aws_credentials_path = os.path.join(user_home_dir, '.aws', 'credentials')
 
 
 def initializer():
-    """Add new function to validate something before rn the program"""
-
-    creds_validator()
-
-
-def get_conf(file) -> ConfigModel:
-    """
-    Load configuration data from a JSON file and return a ConfigModel object.
-
-    Parameters:
-    - file (str): The path to the JSON file containing configuration data.
-
-    Returns:
-    - ConfigModel: An instance of ConfigModel containing the loaded configuration data.
-
-    Raises:
-    - FileNotFoundError: If the specified file does not exist.
-    - JSONDecodeError: If the JSON data in the file is invalid.
-
-    Example:
-    >>> config = get_conf("config.json")
-    >>> print(config)
-    ConfigModel(attr1='value1', attr2='value2', ...)
-
-    This function loads configuration data from a JSON file and initializes a ConfigModel
-    object with the loaded data. The ConfigModel class should have attributes corresponding
-    to the keys in the JSON object. It's expected that the JSON file contains a valid
-    configuration structure that can be deserialized into a dictionary.
-
-    Note:
-    - The ConfigModel class should be defined with attributes corresponding to the keys
-      in the JSON object. This function relies on the constructor of ConfigModel accepting
-      keyword arguments.
-
-    - This function relies on the 'load_json' function, which should be defined elsewhere
-      in the codebase and be responsible for loading JSON data from a file.
-
-    Example Usage:
-    We can load this configuration using the get_conf function:
-    >>> config = get_conf("config.json")
-    >>> print(config)
-    ConfigModel(attr1='value1', attr2='value2', ...)
-    """
-    config_data = load_json(file)
-    return ConfigModel(**config_data)
+    """Add new function to validate something before run the program"""
+    try:
+        validate_aws_credentials(project_aws_credentials_path, user_aws_credentials_path)
+        logger.debug("Credentials found in the desired path")
+    except FileNotFoundError as e:
+        logger.error("No credentials found in the desired location")
 
 
 args = DexpoArgParser()
 
-CONF = get_conf(CONFIG_FILE_PATH)
+CONF = get_conf(config_dir_path)
+
+logger.debug(
+    f"Config loaded source from: {config_dir_path} ."
+)
+logger.debug(
+    "\n\n \
+    #-- start: project settings --# \n \
+    project_name: {} \n \
+    project_home_path: {} \n \
+    config_file_path: {} \n \
+    -- end: project settings -- \n \n \
+        ".format(
+        project_name, project_home_dir_path, config_dir_path
+    ),
+)

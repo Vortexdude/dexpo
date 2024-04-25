@@ -1,9 +1,10 @@
+from dexpo.settings import logger
 from .vpc.vpc import vpc_validator, create_vpc
 from .vpc.route_table import route_table_validator, create_route_table
 from .vpc.ig import internet_gateway_validator, create_internet_gateway
 from .vpc.subnet import subnet_validator, create_subnet
 from .vpc.security_group import security_group_validator, create_security_group
-from dexpo.src.lib.utils import save_to_file, load_json
+from dexpo.src.lib.utils import Util
 
 
 class ResourceManager:
@@ -31,9 +32,11 @@ class ValidateHandler:
 
     def validate(self):
         if 'name' in self.vpc:
+            logger.debug("validating VPC")
             self.v_vpc()
 
         if any('name' in item for item in self.route_tables):
+            logger.debug("validating RouteTables")
             self.resource_validator(
                 data=self.route_tables,
                 validator_func=route_table_validator,
@@ -41,15 +44,18 @@ class ValidateHandler:
             )
 
         if 'name' in self.internet_gateway:
+            logger.debug("validating Internet Gateway")
             self.v_internet_gateway()
 
         if any('name' in item for item in self.subnets):
+            logger.debug("validating Subnets")
             self.resource_validator(
                 data=self.subnets,
                 validator_func=subnet_validator,
                 resource_key='sn'
             )
         if any('name' in item for item in self.security_groups):
+            logger.debug("validating Security Groups")
             self.resource_validator(
                 data=self.security_groups,
                 validator_func=security_group_validator,
@@ -126,18 +132,12 @@ class DeployHandler:
         self.data = data
         self.cloud_state: dict = self.data.copy()
         self.vpc: dict = self.data['vpc']
+        self.vpc_name = self.vpc['name']
         self.route_tables: list = self.data['route_tables']
         self.internet_gateway: dict = self.data['internet_gateway']
+        self.ig_name = self.internet_gateway['name']
         self.subnets: list = self.data['subnets']
         self.security_groups: list = self.data['security_groups']
-        self.vpc_resource: object = None
-        self.internet_gateway_resource: object = None
-        self.route_table_resource: object = None
-        self.subnet_resource: object = None
-        self.vpc_id: str = ''
-        self.internet_gateway_id: str = ''
-        self.route_table_id: str = ''
-        self.subnet_id: str = ''
 
     @staticmethod
     def store_state(resource_type: str, resource_name: str, resource_id: str, boto_resource):
@@ -146,6 +146,22 @@ class DeployHandler:
     @staticmethod
     def store_list_type_state(resource_type: str, data: dict):
         rm.data.update({resource_type: data})
+
+    def get_data(self, resource):
+        if 'vpc_id' in resource:
+            return rm.data['vpc'][self.vpc_name]['id']
+
+        if 'vpc_resource' in resource:
+            return rm.data['vpc'][self.vpc_name]['resource']
+
+        if 'ig_id' in resource:
+            return rm.data['ig'][self.internet_gateway['name']]['id']
+
+        if 'ig_resource' in resource:
+            return rm.data['ig'][self.internet_gateway['name']]['resource']
+
+        if 'rt_resource' in resource:
+            return rm.data['rt'][self.route_tables]['id']
 
     def launch(self):
         if 'VpcId' not in self.vpc:
@@ -168,17 +184,16 @@ class DeployHandler:
             self.store_list_type_state(resource_type=resource_type, data=global_resource_data)
 
     def x_vpc(self):
-        vpc_name = self.vpc['name']
-        print("Creating VPC " + vpc_name)
+        print("Creating VPC " + self.vpc_name)
         response, vpc_resource = create_vpc(self.vpc)
         vpc_id = response['Vpc']['VpcId']  # response from the create method
-        self.store_state(resource_id=vpc_id, resource_type='vpc', resource_name=vpc_name, boto_resource=vpc_resource)
+        self.store_state(resource_id=vpc_id, resource_type='vpc', resource_name=self.vpc_name, boto_resource=vpc_resource)
         self.vpc.update(response)
 
     def x_ig(self):
         ig_name = self.internet_gateway['name']
         print("Creating Internet Gateway " + ig_name)
-        vpc_resource = rm.data['vpc'][self.vpc['name']]['resource']  # get the vpc resource from resource manager
+        vpc_resource = self.get_data('vpc_resource')
         response, ig_resource = create_internet_gateway(
             data=self.internet_gateway, vpc_resource=vpc_resource
         )
@@ -188,11 +203,11 @@ class DeployHandler:
 
     def x_rt(self, data):
         print("Creating Route Table " + data['name'])
+        vpc_resource = self.get_data('vpc_resource')
+        ig_id = self.get_data('ig_id')
         if not data['DestinationCidrBlock']:  # check for private route that doesn't have the public route
-            self.internet_gateway_id = ''
+            ig_id = ''
 
-        vpc_resource = rm.data['vpc'][self.vpc['name']]['resource']
-        ig_id = rm.data['ig'][self.internet_gateway['name']]['id']
         rt_id, rt_resource = create_route_table(
             data=data, vpc_resource=vpc_resource, ig_id=ig_id
         )
@@ -201,14 +216,16 @@ class DeployHandler:
     def x_sb(self, data):
         print("Creating Subnet " + data['name'])
         rt_resource = rm.data['rt'][data['route_table']]['resource']
-        self.subnet_id, self.subnet_resource = create_subnet(
-            data=data, vpc_resource=rm.data['vpc'][self.vpc['name']]['resource'], rt_resource=rt_resource
+        vpc_resource = self.get_data('vpc_resource')
+        sb_id, sb_resource = create_subnet(
+            data=data, vpc_resource=vpc_resource, rt_resource=rt_resource
         )
-        return rm.formatter(name=data['name'], _id=self.subnet_id, resource=self.subnet_resource)
+        return rm.formatter(name=data['name'], _id=sb_id, resource=sb_resource)
 
     def x_sg(self, data):
         print("Creating security Group " + data['name'])
-        sg_id, sg_resource = create_security_group(data, self.vpc_id)
+        vpc_id = self.get_data('vpc_resource')
+        sg_id, sg_resource = create_security_group(data, vpc_id)
         return rm.formatter(name=data['name'], _id=sg_id, resource=sg_resource)
 
 
@@ -219,7 +236,7 @@ class Controller(object):
 
     @staticmethod
     def store_state(file='state.json', data=None):
-        save_to_file(file, {"vpcs": data})
+        Util.save_to_file(file, {"vpcs": data})
 
     def validate(self):
         _vpsStates = []
@@ -229,7 +246,7 @@ class Controller(object):
         self.store_state(data=_vpsStates)
 
     def apply(self):
-        data = load_json(self.state_file)
+        data = Util.load_json(self.state_file)
         for vpc_data in data['vpcs']:
             dh = DeployHandler(data=vpc_data)
             dh.launch()
