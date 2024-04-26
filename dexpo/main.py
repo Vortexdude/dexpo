@@ -1,5 +1,5 @@
 from dexpo.settings import logger, args, initializer, CONF
-from dexpo.src.resources import Controller
+from dexpo.src.controller.main import Controller
 
 
 def main(action):

@@ -1,5 +1,6 @@
 from dexpo.src.resources.main import Base, BaseAbstractmethod
 from botocore.exceptions import ClientError
+from dexpo.settings import logger
 
 
 class Subnet(Base, BaseAbstractmethod):
@@ -26,6 +27,7 @@ class Subnet(Base, BaseAbstractmethod):
             ],
         )
         if not response['Subnets']:
+            logger.info("No subnets found in the cloud")
             return {}
 
         return response['Subnets'][0]
@@ -46,14 +48,12 @@ class Subnet(Base, BaseAbstractmethod):
                 )
 
                 rt_resource.associate_with_subnet(SubnetId=subnet.id)
-                print(f"Subnet {self.name} created successfully!")
+                logger.info(f"Subnet {self.name} created successfully!")
                 return subnet.id
-                # _resource = self.resource.Subnet(subnet.id)
 
             except ClientError as e:
                 if e.response['Error']['Code'] == 'InvalidSubnet.Conflict':
-                    print(f"Subnet {self.name} already exist")
-                    print(f"{e= }")
+                    logger.warning(f"Subnet {self.name} already exist")
 
     def delete(self):
         pass
@@ -66,7 +66,7 @@ def subnet_validator(data: dict) -> dict:
     sb_obj = Subnet(**data)
     subnet = sb_obj.validate()
     if not subnet:
-        print("No Subnets found under the name tag " + data['name'])
+        logger.info("No Subnets found under the name tag " + data['name'])
         return {}
 
     resource = sb_obj.resource.Subnet(subnet['SubnetId'])

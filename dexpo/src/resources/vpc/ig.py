@@ -19,6 +19,7 @@ Example:
 
 
 from dexpo.src.resources.main import Base, BaseAbstractmethod
+from dexpo.settings import logger
 
 
 class InternetGateway(Base, BaseAbstractmethod):
@@ -51,11 +52,11 @@ class InternetGateway(Base, BaseAbstractmethod):
         )
 
         if response['InternetGateway']:
-            print(f"Internet Gateway {self.name} Created Successfully!")
+            logger.info(f"Internet Gateway {self.name} Created Successfully!")
             ig_id = response['InternetGateway']['InternetGatewayId']
             if vpc_resource:
                 vpc_resource.attach_internet_gateway(InternetGatewayId=ig_id)
-                print(f"Internet Gateway {self.name} attached to vpc {ig_id} Successfully!")
+                logger.info(f"Internet Gateway {self.name} attached to vpc {ig_id} Successfully!")
 
                 return response
 
@@ -70,7 +71,7 @@ def internet_gateway_validator(data: dict) -> dict:
     ig_obj = InternetGateway(**data)
     ig = ig_obj.validate()
     if not ig:
-        print("No Internet Gateway found under the Name tag " + data['name'])
+        logger.info("No Internet Gateway found under the Name tag " + data['name'])
         return {}
 
     resource = ig_obj.resource.InternetGateway(ig['InternetGatewayId'])

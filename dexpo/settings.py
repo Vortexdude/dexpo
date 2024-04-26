@@ -2,10 +2,10 @@ from dexpo.src.lib.parser import DexpoArgParser
 from dexpo.src.lib.utils import get_conf
 from dexpo.src.lib.utils import validate_aws_credentials, DexLogger, Util
 import os
-
+from dexpo.banner import banner
 project_name = 'dexpo'
 
-DEBUG = True
+DEBUG = False
 
 if DEBUG:
     log_level = 'debug'
@@ -17,6 +17,15 @@ user_home_dir = os.path.expanduser('~')
 config_dir_path = os.path.join(project_home_dir_path, 'config', "config.json")
 state_file_path = os.path.join(project_home_dir_path, 'state.json')
 temp_state_file_path = os.path.join(project_home_dir_path, 'temp_state.json')
+
+
+class Files:
+    CONFIG_FILE_PATH = config_dir_path
+    STATE_FILE_PATH = state_file_path
+    TEMP_STATE_FILE_PATH = temp_state_file_path
+
+
+print(banner)
 
 loginit = DexLogger(log_level, project_name)
 logger = loginit.get_logger()

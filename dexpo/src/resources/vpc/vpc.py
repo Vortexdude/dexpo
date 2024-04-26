@@ -1,4 +1,5 @@
 from dexpo.src.resources.main import Base, BaseAbstractmethod
+from dexpo.settings import logger
 
 
 class VpcResource(Base, BaseAbstractmethod):
@@ -27,7 +28,7 @@ class VpcResource(Base, BaseAbstractmethod):
                 }]
             )  # adding name to the VPC
 
-            print(f"Vpc {self.name} Created Successfully!")
+            logger.info(f"{self.name} VPC Created Successfully!")
             return response
 
     def validate(self) -> dict:
@@ -46,7 +47,7 @@ class VpcResource(Base, BaseAbstractmethod):
 
             })
         else:
-            print("Something not parsed into the function")
+            logger.error("Something not parsed into the function")
 
         response = self.client.describe_vpcs(Filters=self.filters)
         if not response['Vpcs']:
@@ -68,7 +69,7 @@ def vpc_validator(data: dict) -> dict:
     vpc_obj = VpcResource(**data)
     vpc = vpc_obj.validate()
     if not vpc:
-        print(f"No Vpc found under the name {data['name']} and CIDR block {data['CidrBlock']}")
+        logger.info(f"No Vpc found under the name {data['name']} and CIDR block {data['CidrBlock']}")
         return {}
         #  Handle the exiting or skipping form here
     resource = vpc_obj.resource.Vpc(vpc['VpcId'])

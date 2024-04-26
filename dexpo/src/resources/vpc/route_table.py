@@ -1,4 +1,5 @@
 from dexpo.src.resources.main import Base, BaseAbstractmethod
+from dexpo.settings import logger
 
 
 class RouteTable(Base, BaseAbstractmethod):
@@ -29,14 +30,13 @@ class RouteTable(Base, BaseAbstractmethod):
                 "Value": self.name
             }])
             self.id = str(routeTable.id)
-            print(f"{ig_id=}")
             if ig_id:
                 routeTable.create_route(
                     DestinationCidrBlock="0.0.0.0/0",
                     GatewayId=ig_id
                 )
 
-                print(f"Route Table {self.name} Created Successfully!")
+                logger.info(f"Route Table {self.name} Created Successfully!")
             return self.id
 
     def delete(self):
@@ -50,7 +50,7 @@ def route_table_validator(data: dict) -> dict:
     rt_obj = RouteTable(**data)
     rt = rt_obj.validate()
     if not rt:
-        print("No Route Table found under the Name tag " + data['name'])
+        logger.info("No Route Table found under the Name tag " + data['name'])
         #  Handle the exiting or skipping form here
         return {}
 

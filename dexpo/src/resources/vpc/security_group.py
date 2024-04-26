@@ -1,5 +1,6 @@
 from dexpo.src.resources.main import Base, BaseAbstractmethod
 from requests import get
+from dexpo.settings import logger
 
 
 class SecurityGroup(Base, BaseAbstractmethod):
@@ -24,6 +25,7 @@ class SecurityGroup(Base, BaseAbstractmethod):
             if self.name == ec2_security_group['GroupName']:
                 sg_groups.append(ec2_security_group)
         if not sg_groups:
+            logger.info(f"No security Groups are found in the cloud")
             return {}
         else:
             return sg_groups[0]
@@ -46,11 +48,11 @@ class SecurityGroup(Base, BaseAbstractmethod):
             secGroup.authorize_ingress(
                 IpPermissions=self.permissions
             )
-            print(f'Security Group {self.name} Created Successfully!')
-            self.id = secGroup.id
-            self._resource = self.resource.SecurityGroup(self.id)
+            logger.info(f'Security Group {self.name} Created Successfully!')
+            sg_id = secGroup.id
+            self._resource = self.resource.SecurityGroup(sg_id)
         else:
-            print('Error while creating ingress rule in the security Group')
+            logger.error('Error while creating ingress rule in the security Group')
 
         return secGroup.id
 
@@ -66,7 +68,7 @@ def security_group_validator(data: dict) -> dict:
     sg_obj = SecurityGroup(**data)
     security_group = sg_obj.validate()
     if not security_group:
-        print("No Security Group found under the name tag " + data['name'])
+        logger.info("No Security Group found under the name tag " + data['name'])
         return {}
 
     resource = sg_obj.resource.SecurityGroup(security_group['GroupId'])
