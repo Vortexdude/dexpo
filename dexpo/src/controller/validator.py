@@ -1,11 +1,7 @@
 from dexpo.settings import logger
 from dexpo.src.lib.state_management import state
-from dexpo.src.resources.vpc.vpc import vpc_validator
-from dexpo.src.resources.vpc.ig import internet_gateway_validator
-from dexpo.src.resources.vpc.route_table import route_table_validator
-from dexpo.src.resources.vpc.subnet import subnet_validator
-from dexpo.src.resources.vpc.security_group import security_group_validator
-from dexpo.src.controller.main import dexpo
+from dexpo.settings import dexpo
+
 
 class ValidateHandler:
     def __init__(self, vpc_data):
@@ -19,36 +15,14 @@ class ValidateHandler:
         self.validate()
 
     def validate(self):
-        if 'name' in self.vpc:
-            logger.debug("validating VPC")
-            self.v_vpc()
-
-        if any('name' in item for item in self.route_tables):
-            logger.debug("validating RouteTables")
-            self.resource_validator(
-                data=self.route_tables,
-                validator_func=route_table_validator,
-                resource_key='rt'
-            )
-
-        if 'name' in self.internet_gateway:
-            logger.debug("validating Internet Gateway")
-            self.v_internet_gateway()
-
-        if any('name' in item for item in self.subnets):
-            logger.debug("validating Subnets")
-            self.resource_validator(
-                data=self.subnets,
-                validator_func=subnet_validator,
-                resource_key='sn'
-            )
-        if any('name' in item for item in self.security_groups):
-            logger.debug("validating Security Groups")
-            self.resource_validator(
-                data=self.security_groups,
-                validator_func=security_group_validator,
-                resource_key='sg'
-            )
+        try:
+            self.validate_vpc()
+            self.validate_internet_gateway()
+            self.validate_route_tables()
+            self.validate_subnets()
+            self.validate_security_groups()
+        except Exception as e:
+            logger.error(f"{e}")
 
     @staticmethod
     def extractor(module_data):
@@ -71,30 +45,45 @@ class ValidateHandler:
 
         return _id, resource
 
-    def _global_validator(self, data, validator_function) -> tuple[dict, dict]:
-        module_resource_data = validator_function(data)
-        if not module_resource_data:
-            return {}, {}
+    def validate_vpc(self):
+        vpc_module_data = dexpo.run_plugin_method('validate_vpc', self.vpc)
+        if not vpc_module_data:
+            return
+        _id, _resource = self.extractor(vpc_module_data)
+        _vpc_formatted_data = state.formatter(name=self.vpc['name'], _id=_id, resource=_resource)
+        del vpc_module_data['resource']
+        state.data.update({'vpc': _vpc_formatted_data})
+        self.vpc.update(vpc_module_data)
 
-        _id, _resource = self.extractor(module_resource_data)
-        _resource_formatted_data = state.formatter(name=data['name'], _id=_id, resource=_resource)
-        del module_resource_data['resource']
-        return module_resource_data, _resource_formatted_data
+    def validate_internet_gateway(self):
+        ig_module_data = dexpo.run_plugin_method('validate_ig', self.internet_gateway)
+        if not ig_module_data:
+            return
+        _id, _resource = self.extractor(ig_module_data)
+        _ig_formatted_data = state.formatter(name=self.internet_gateway['name'], _id=_id, resource=_resource)
+        del ig_module_data['resource']
+        state.data.update({'ig': _ig_formatted_data})
+        self.internet_gateway.update(ig_module_data)
 
-    def v_vpc(self):
-        module_data, rm_vpc_data = self._global_validator(self.vpc, vpc_validator)
-        state.data.update({'vpc': rm_vpc_data})
-        self.vpc.update(module_data)
+    def validate_route_tables(self):
+        self._custom_validator(data=self.route_tables, resource_name='rt', runner_method='validate_rt')
 
-    def v_internet_gateway(self):
-        module_data, rm_ig_data = self._global_validator(self.internet_gateway, internet_gateway_validator)
-        state.data.update({'ig': rm_ig_data})
-        self.internet_gateway.update(module_data)
+    def validate_subnets(self):
+        self._custom_validator(data=self.subnets, resource_name='sb', runner_method='validate_sb')
 
-    def resource_validator(self, data: list, validator_func, resource_key):
-        resource_data = {}
-        for index, rs_data in enumerate(data):
-            module_data, _rm_data = self._global_validator(rs_data, validator_func)
-            resource_data.update(_rm_data)
+    def validate_security_groups(self):
+        self._custom_validator(data=self.security_groups, resource_name='sg', runner_method='validate_sg')
+
+    def _custom_validator(self, data: list, resource_name: str, runner_method: str):
+        _resource_data = {}
+        for index, resource_data in enumerate(data):
+            module_data = dexpo.run_plugin_method(runner_method, resource_data)
+            if not module_data:
+                continue
+
+            _id, _resource = self.extractor(module_data)
+            del module_data['resource']
             data[index].update(module_data)
-        state.data.update({resource_key: resource_data})
+            _module_formatted_data = state.formatter(name=resource_data['name'], _id=_id, resource=_resource)
+            _resource_data.update(_module_formatted_data)
+        state.data.update({resource_name: _resource_data})

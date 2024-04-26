@@ -12,7 +12,7 @@ USER_AWS_FILE_PATH = os.path.join(HOME_DIR, '.aws', 'credentials')
 CURRENT_WORKING_DIR = os.getcwd()
 STATE_FILE_PATH = os.path.join(CURRENT_WORKING_DIR, 'state.json')
 TEMP_STATE_FILE_PATH = os.path.join(CURRENT_WORKING_DIR, 'temp_state.json')
-PLUGIN_DIRECTORY = os.path.join(CURRENT_WORKING_DIR, project_name, 'src', 'resource', 'vpc')
+PLUGIN_DIRECTORY = os.path.join(CURRENT_WORKING_DIR, project_name, 'src', 'resources', 'vpc')
 env_vars: dict = {'DEBUG': True}
 
 

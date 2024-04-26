@@ -65,7 +65,7 @@ class VpcResource(Base, BaseAbstractmethod):
         return self.resource.Vpc(id)
 
 
-def vpc_validator(data: dict) -> dict:
+def vpc_validator(data: dict, *args, **kwargs) -> dict:
     vpc_obj = VpcResource(**data)
     vpc = vpc_obj.validate()
     if not vpc:
@@ -77,7 +77,7 @@ def vpc_validator(data: dict) -> dict:
     return vpc
 
 
-def create_vpc(data: dict) -> tuple[dict, object]:
+def create_vpc(data: dict, *args, **kwargs) -> tuple[dict, object]:
     vpc_obj = VpcResource(**data)
     response = vpc_obj.create()
     return response, vpc_obj.vpc_resource
