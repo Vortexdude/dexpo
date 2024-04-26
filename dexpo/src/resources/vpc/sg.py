@@ -63,7 +63,7 @@ class SecurityGroup(Base, BaseAbstractmethod):
         pass
 
 
-def security_group_validator(data: dict) -> dict:
+def sg_validator(data: dict,  *args, **kwargs) -> dict:
     _security_group_state = {}
     sg_obj = SecurityGroup(**data)
     security_group = sg_obj.validate()
@@ -76,7 +76,7 @@ def security_group_validator(data: dict) -> dict:
     return security_group
 
 
-def create_security_group(data: dict, vpc_id) -> tuple:
+def create_sg(data: dict, vpc_id,  *args, **kwargs) -> tuple:
     sg_object = SecurityGroup(**data)
     sg_id = sg_object.create(vpc_id)
     return sg_id, sg_object.resource.SecurityGroup(sg_id)

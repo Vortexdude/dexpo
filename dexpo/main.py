@@ -7,6 +7,7 @@ def main(action):
     controller.validate()
 
     if action == 'apply':
+        pass
         controller.apply()
 
     elif action == 'destroy':

@@ -62,7 +62,7 @@ class Subnet(Base, BaseAbstractmethod):
         pass
 
 
-def subnet_validator(data: dict) -> dict:
+def sb_validator(data: dict, *args, **kwargs) -> dict:
     sb_obj = Subnet(**data)
     subnet = sb_obj.validate()
     if not subnet:
@@ -74,7 +74,7 @@ def subnet_validator(data: dict) -> dict:
     return subnet
 
 
-def create_subnet(data: dict, vpc_resource, rt_resource) -> tuple:
+def create_subnet(data: dict, vpc_resource, rt_resource, *args, **kwargs) -> tuple:
     sb_object = Subnet(**data)
     sb_id = sb_object.create(vpc_resource, rt_resource)
     return sb_id, sb_object.resource.Subnet(sb_id)

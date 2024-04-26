@@ -46,7 +46,7 @@ class RouteTable(Base, BaseAbstractmethod):
         pass
 
 
-def route_table_validator(data: dict) -> dict:
+def rt_validator(data: dict, *args, **kwargs) -> dict:
     rt_obj = RouteTable(**data)
     rt = rt_obj.validate()
     if not rt:
@@ -59,7 +59,7 @@ def route_table_validator(data: dict) -> dict:
     return rt
 
 
-def create_route_table(data: dict, vpc_resource, ig_id) -> tuple:
+def create_route_table(data: dict, vpc_resource, ig_id, *args, **kwargs) -> tuple:
     rt_obj = RouteTable(**data)
     rt_id = rt_obj.create(vpc_resource, ig_id)
     return rt_id, rt_obj.resource.RouteTable(rt_id)

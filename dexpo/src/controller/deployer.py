@@ -2,9 +2,9 @@ from dexpo.settings import logger
 from dexpo.src.lib.state_management import state
 from dexpo.src.resources.vpc.vpc import create_vpc
 from dexpo.src.resources.vpc.ig import create_internet_gateway
-from dexpo.src.resources.vpc.route_table import create_route_table
-from dexpo.src.resources.vpc.subnet import create_subnet
-from dexpo.src.resources.vpc.security_group import create_security_group
+from dexpo.src.resources.vpc.rt import create_route_table
+from dexpo.src.resources.vpc.sb import create_subnet
+from dexpo.src.resources.vpc.sg import create_sg
 
 
 class DeployHandler:
@@ -119,6 +119,6 @@ class DeployHandler:
 
     def x_sg(self, data):
         logger.info("Creating security Group " + data['name'])
-        vpc_id = self.get_data('vpc_resource')
-        sg_id, sg_resource = create_security_group(data, vpc_id)
+        vpc_id = self.get_data('vpc_id')
+        sg_id, sg_resource = create_sg(data, vpc_id)
         return state.formatter(name=data['name'], _id=sg_id, resource=sg_resource)

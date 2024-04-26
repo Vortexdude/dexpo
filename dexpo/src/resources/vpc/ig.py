@@ -67,7 +67,7 @@ class InternetGateway(Base, BaseAbstractmethod):
         pass
 
 
-def internet_gateway_validator(data: dict) -> dict:
+def ig_validator(data: dict, *args, **kwargs) -> dict:
     ig_obj = InternetGateway(**data)
     ig = ig_obj.validate()
     if not ig:
@@ -79,7 +79,7 @@ def internet_gateway_validator(data: dict) -> dict:
     return ig
 
 
-def create_internet_gateway(data: dict, vpc_resource) -> tuple[dict, object]:
+def create_internet_gateway(data: dict, vpc_resource, *args, **kwargs) -> tuple[dict, object]:
     ig_obj = InternetGateway(**data)
     response = ig_obj.create(vpc_resource)
     return response, ig_obj.resource.InternetGateway(response['InternetGateway']['InternetGatewayId'])

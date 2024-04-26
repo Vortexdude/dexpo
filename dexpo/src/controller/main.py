@@ -2,11 +2,7 @@ from dexpo.src.lib.utils import Util
 from dexpo.src.controller.validator import ValidateHandler
 from dexpo.src.controller.deployer import DeployHandler
 from dexpo.settings import Files
-from dexpo import Dexpo
-from dexpo.settings import PLUGIN_DIRECTORY
 
-dexpo = Dexpo()
-dexpo.load_plugins(PLUGIN_DIRECTORY)
 # dexpo.run_plugin_method('create_vpc', "nothing")
 # dexpo.run_plugin_method('validate_vpc', "nothing")
 

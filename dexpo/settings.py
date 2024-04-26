@@ -3,6 +3,7 @@ from dexpo.src.lib.utils import get_conf
 from dexpo.src.lib.utils import validate_aws_credentials, DexLogger, Util
 import os
 from dexpo.banner import banner
+from dexpo import Dexpo
 project_name = 'dexpo'
 
 DEBUG = True
@@ -65,3 +66,7 @@ logger.debug(
         project_name, project_home_dir_path, config_dir_path, PLUGIN_DIRECTORY
     ),
 )
+
+
+dexpo = Dexpo(logger)
+dexpo.load_plugins(PLUGIN_DIRECTORY)
