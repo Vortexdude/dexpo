@@ -1,16 +1,18 @@
 import os
 import json
 import sys
+import importlib
 import logging
 from errno import EACCES, EPERM
 from dexpo.src.lib.models import ConfigModel
 
+project_name = 'dexpo'
 HOME_DIR = os.path.expanduser('~')
 USER_AWS_FILE_PATH = os.path.join(HOME_DIR, '.aws', 'credentials')
 CURRENT_WORKING_DIR = os.getcwd()
 STATE_FILE_PATH = os.path.join(CURRENT_WORKING_DIR, 'state.json')
 TEMP_STATE_FILE_PATH = os.path.join(CURRENT_WORKING_DIR, 'temp_state.json')
-
+PLUGIN_DIRECTORY = os.path.join(CURRENT_WORKING_DIR, project_name, 'src', 'resource', 'vpc')
 env_vars: dict = {'DEBUG': True}
 
 
@@ -258,3 +260,38 @@ def get_class_variable(class_name, default=False) -> list | dict:
 
 
 PROJECT_HOME_PATH = os.getcwd()
+
+
+class Dexpo:
+    def __init__(self):
+        self.resources = []
+
+    def load_resource(self, resource_directory):
+        """
+        Load resource from the specified directory.
+
+        Parameters:
+            resource_directory (str): The directory containing resource modules.
+        """
+        for filename in os.listdir(resource_directory):
+            if filename.endswith('.py') and filename != '__init__.py':
+                module_name = os.path.splitext(filename)[0]
+                module = importlib.import_module(f"dexpo.src.{module_name}")
+                for name in dir(module):
+                    obj = getattr(module, name)
+                    if hasattr(obj, '__bases__') and Dexpo in obj.__bases__:
+                        self.resources.append(obj())
+
+    def run_class_method(self, method_name, *args, **kwargs):
+        """
+        Run a method of all loaded resource.
+
+        Parameters:
+            method_name (str): The name of the method to run.
+            *args: Positional arguments to pass to the method.
+            **kwargs: Keyword arguments to pass to the method.
+        """
+        for resource in self.resources:
+            if hasattr(resource, method_name):
+                method = getattr(resource, method_name)
+                method(*args, **kwargs)

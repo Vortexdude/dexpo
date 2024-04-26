@@ -5,7 +5,7 @@ import os
 from dexpo.banner import banner
 project_name = 'dexpo'
 
-DEBUG = False
+DEBUG = True
 
 if DEBUG:
     log_level = 'debug'
@@ -52,14 +52,16 @@ CONF = get_conf(config_dir_path)
 logger.debug(
     f"Config loaded source from: {config_dir_path} ."
 )
+from dexpo.src.lib.utils import PLUGIN_DIRECTORY
 logger.debug(
     "\n\n \
     #-- start: project settings --# \n \
     project_name: {} \n \
     project_home_path: {} \n \
     config_file_path: {} \n \
+    plugin_directory: {} \n \
     -- end: project settings -- \n \n \
         ".format(
-        project_name, project_home_dir_path, config_dir_path
+        project_name, project_home_dir_path, config_dir_path, PLUGIN_DIRECTORY
     ),
 )

@@ -5,7 +5,7 @@ from dexpo.src.resources.vpc.ig import internet_gateway_validator
 from dexpo.src.resources.vpc.route_table import route_table_validator
 from dexpo.src.resources.vpc.subnet import subnet_validator
 from dexpo.src.resources.vpc.security_group import security_group_validator
-
+from dexpo.src.controller.main import dexpo
 
 class ValidateHandler:
     def __init__(self, vpc_data):
