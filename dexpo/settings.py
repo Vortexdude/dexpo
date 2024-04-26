@@ -68,5 +68,5 @@ logger.debug(
 )
 
 
-dexpo = Dexpo(logger)
+dexpo = Dexpo()
 dexpo.load_plugins(PLUGIN_DIRECTORY)
