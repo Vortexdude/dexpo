@@ -1,9 +1,8 @@
 from dexpo.src.lib.parser import DexpoArgParser
-from dexpo.src.lib.utils import get_conf
-from dexpo.src.lib.utils import validate_aws_credentials, DexLogger, Util
+from dexpo.src.lib.utils import get_conf, PluginManager
+from dexpo.src.lib.utils import validate_aws_credentials, DexLogger
 import os
 from dexpo.banner import banner
-from dexpo import Dexpo
 project_name = 'dexpo'
 
 DEBUG = True
@@ -18,6 +17,10 @@ user_home_dir = os.path.expanduser('~')
 config_dir_path = os.path.join(project_home_dir_path, 'config', "config.json")
 state_file_path = os.path.join(project_home_dir_path, 'state.json')
 temp_state_file_path = os.path.join(project_home_dir_path, 'temp_state.json')
+default_plugin_path = os.path.join(project_home_dir_path, project_name, 'src/plugins/')
+
+
+pluginManager = PluginManager(plugin_path=default_plugin_path, project_home=project_home_dir_path)
 
 
 class Files:
@@ -53,20 +56,15 @@ CONF = get_conf(config_dir_path)
 logger.debug(
     f"Config loaded source from: {config_dir_path} ."
 )
-from dexpo.src.lib.utils import PLUGIN_DIRECTORY
+
 logger.debug(
     "\n\n \
     #-- start: project settings --# \n \
     project_name: {} \n \
     project_home_path: {} \n \
     config_file_path: {} \n \
-    plugin_directory: {} \n \
     -- end: project settings -- \n \n \
         ".format(
-        project_name, project_home_dir_path, config_dir_path, PLUGIN_DIRECTORY
+        project_name, project_home_dir_path, config_dir_path
     ),
 )
-
-
-dexpo = Dexpo()
-dexpo.load_plugins(PLUGIN_DIRECTORY)

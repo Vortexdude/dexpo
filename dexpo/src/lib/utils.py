@@ -295,3 +295,34 @@ class Dexpo:
             if hasattr(resource, method_name):
                 method = getattr(resource, method_name)
                 method(*args, **kwargs)
+
+
+class PluginManager:
+    def __init__(self, plugin_path, project_home):
+        self.plugins = []
+        self.plugin_path = plugin_path
+        self._set_all_paths(project_home)
+        self._find_all_plugins()
+
+    def _set_all_paths(self, home_dir):
+        self.plugin_relative_path = self.plugin_path.replace(home_dir + '/', '')
+        self.plugin_path_import_style = str(self.plugin_relative_path.replace('/', '.'))
+        self._find_all_plugins()
+
+    def _find_all_plugins(self):
+        for filename in os.listdir(self.plugin_path):
+            if filename.endswith('.py') and filename != "__init__.py":
+                self.plugins.append(os.path.splitext(filename)[0])
+
+    def load_plugin(self, name):
+        if not name:
+            raise Exception(f"Given plugin {name} not found in the directory")
+
+        import importlib
+        mod = importlib.import_module(self.plugin_path_import_style + name)
+        return mod
+
+    def call_plugin(self, plugin_name, *args, **kwargs):
+        if plugin_name and plugin_name in self.plugins:
+            plugin = self.load_plugin(plugin_name)
+            return plugin.run_module(*args, **kwargs)
