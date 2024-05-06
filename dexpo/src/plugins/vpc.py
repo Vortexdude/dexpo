@@ -1,9 +1,13 @@
+"""These are docstrings basically a documentation of the module"""
+
 import boto3
 from .test import DexpoModule
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel
 
-
-result = dict()
+result = dict(
+    changed=False,
+    vpc=dict()
+)
 
 
 class VpcInput(BaseModel):
@@ -14,25 +18,32 @@ class VpcInput(BaseModel):
     CidrBlock: str
 
 
+module = DexpoModule(
+    base_arg=VpcInput,
+    extra_args=None,
+    module_type='vpc'
+)
+logger = module.logger
+
+
 class VpcManager:
     def __init__(self, vpc_input: VpcInput):
         self.vpc_input = vpc_input
-        self.validate_data()
         self.ec2_client = boto3.client("ec2", region_name=self.vpc_input.region)
         self.ec2_resource = boto3.resource('ec2', region_name=self.vpc_input.region)
 
-    def validate_data(self):
-        try:
-            self.vpc_input = VpcInput(**self.vpc_input.dict())
-        except ValidationError as e:
-            raise e
+    def _wait_until_available(self, resource):
+        """Wait until the resource is available."""
 
-    def create(self) -> tuple:
+        resource.wait_until_available()
+        logger.info(f"{self.vpc_input.name} is available.")
+
+    def create(self) -> dict:
         """launch the vpc if the vpc not available"""
         if self.vpc_input.deploy:
             response = self.ec2_client.create_vpc(CidrBlock=self.vpc_input.CidrBlock)
             vpc_resource = self.ec2_resource.Vpc(response['Vpc']['VpcId'])
-            vpc_resource.wait_until_available()
+            self._wait_until_available(vpc_resource)
             vpc_resource.create_tags(
                 Tags=[{
                     "Key": "Name",
@@ -40,10 +51,9 @@ class VpcManager:
                 }]
             )  # adding name to the VPC
 
-            result['status'] = f"{self.vpc_input.name} VPC Created Successfully!"
-            return response, vpc_resource
+            return response
         else:
-            return {}, None
+            return {}
 
     def validate(self) -> dict:
         """Check the availability of the vpc with certain parameter like cidr, vpc_id"""
@@ -73,42 +83,39 @@ class VpcManager:
         pass
 
 
-def run_module(action: str, data: dict):
-    result = dict(
-        changed=False
-    )
+def _validate_vpc(vpc: VpcManager):
+    response = vpc.validate()
+    module.save_state(response)
+    if not response:
+        module.logger.debug(
+            f"No Vpc found under the name {vpc.vpc_input.name} and CIDR block {vpc.vpc_input.CidrBlock}")
 
-    module = DexpoModule(
-        base_arg=VpcInput,
-        extra_args=None
-    )
+    return response
+
+
+def _create_vpc(vpc: VpcManager):
+    response = vpc.create()
+    if response:
+        module.save_state(response['Vpc'])
+        logger.info(f"{vpc.vpc_input.name} VPC Created Successfully!")
+    else:
+        logger.warn(f"Could not able to create VPC {vpc.vpc_input.name}")
+    return response
+
+
+def _delete_vpc(vpc_name: str):
+    pass
+
+
+def run_module(action: str, data: dict):
     inp = VpcInput(**data)
     vpc = VpcManager(inp)
+    module.base_args = vpc.vpc_input
     if action == 'validate':
-        response = vpc.validate()
-        if 'message' in response:
-            module.logger.debug(response['message'])  # also skip the
-            return
-        if 'VpcId' not in response:
-            module.logger.debug(f"No Vpc found under the name {data['name']} and CIDR block {data['CidrBlock']}")
-
-        else:
-            resource = vpc.ec2_resource.Vpc(response['VpcId'])
-            response.update({'resource': resource})
-            result['vpc'] = response
-            result['vpc']['resource'] = resource
-            result['changed'] = True
-
-        return result
+        return _validate_vpc(vpc)
 
     elif action == 'create':
-        response, resource = vpc.create()
-        if not response:
-            result['changed'] = False
-        else:
-            result['vpc'] = response
-            result['vpc']['resource'] = resource
+        return _create_vpc(vpc)
 
-        return result
-    if action == 'delete':
-        vpc.delete()
+    elif action == 'delete':
+        return _delete_vpc(vpc_name="nothing")

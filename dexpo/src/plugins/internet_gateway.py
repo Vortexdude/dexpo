@@ -1,114 +1,117 @@
+"""These are docstrings basically a documentation of the module"""
+
 import boto3
 from .test import DexpoModule
 from pydantic import BaseModel, ValidationError
+from typing import Optional
+
+result = dict(
+    changed=False,
+    ig=dict()
+)
 
 
-result = dict()
-
-
-class VpcInput(BaseModel):
+class InternetGatewayInput(BaseModel):
     name: str
     deploy: bool
-    dry_run: bool
-    region: str
-    CidrBlock: str
+    dry_run: bool = True
+    region: Optional[str | None] = 'ap-south-1'
 
 
-class VpcManager:
-    def __init__(self, vpc_input: VpcInput):
-        self.vpc_input = vpc_input
+module = DexpoModule(
+    base_arg=InternetGatewayInput,
+    extra_args=None,
+    module_type='internet_gateway'
+)
+
+logger = module.logger
+
+
+class InternetGatewayManager:
+    def __init__(self, ig_input: InternetGatewayInput):
+        self.ig_input = ig_input
         self.validate_data()
-        self.ec2_client = boto3.client("ec2", region_name=self.vpc_input.region)
-        self.ec2_resource = boto3.resource('ec2', region_name=self.vpc_input.region)
+        self.ec2_client = boto3.client("ec2", region_name=self.ig_input.region)
+        self.ec2_resource = boto3.resource('ec2', region_name=self.ig_input.region)
 
     def validate_data(self):
         try:
-            self.vpc_input = VpcInput(**self.vpc_input.dict())
+            self.ig_input = InternetGatewayInput(**self.ig_input.dict())
         except ValidationError as e:
             raise e
 
-    def create(self) -> tuple:
+    def create(self, vpc_id) -> dict:
         """launch the vpc if the vpc not available"""
-        if self.vpc_input.deploy:
-            response = self.ec2_client.create_vpc(CidrBlock=self.vpc_input.CidrBlock)
-            vpc_resource = self.ec2_resource.Vpc(response['Vpc']['VpcId'])
-            vpc_resource.wait_until_available()
-            vpc_resource.create_tags(
-                Tags=[{
+        response = self.ec2_client.create_internet_gateway(
+            TagSpecifications=[{
+                "ResourceType": "internet-gateway",
+                "Tags": [{
                     "Key": "Name",
-                    "Value": self.vpc_input.name
+                    "Value": self.ig_input.name
                 }]
-            )  # adding name to the VPC
+            }]
+        )
 
-            result['status'] = f"{self.vpc_input.name} VPC Created Successfully!"
-            return response, vpc_resource
-        else:
-            return {}, None
+        if response['InternetGateway']:
+            module.logger.info(f"Internet Gateway {self.ig_input.name} Created Successfully!")
+            ig_id = response['InternetGateway']['InternetGatewayId']
+            if vpc_id:
+                self.ec2_resource.Vpc(vpc_id).attach_internet_gateway(InternetGatewayId=ig_id)
+                module.logger.info(f"Internet Gateway {self.ig_input.name} attached to vpc {ig_id} Successfully!")
+
+        return response
 
     def validate(self) -> dict:
-        """Check the availability of the vpc with certain parameter like cidr, vpc_id"""
-        filters = []
-        if self.vpc_input.CidrBlock:
-            filters.append({
-                'Name': 'cidr-block-association.cidr-block',
-                'Values': [self.vpc_input.CidrBlock]
-            })
-
-        elif self.vpc_input.name:
-            filters.append({
-                "Name": "tag:Name",
-                "Values": [self.vpc_input.name]
-
-            })
-        else:
-            return {'message': "For search the vpc need to give Identification"}
-
-        response = self.ec2_client.describe_vpcs(Filters=filters)
-        if not response['Vpcs']:
+        response = self.ec2_client.describe_internet_gateways(Filters=[{
+            "Name": "tag:Name",
+            "Values": [self.ig_input.name]
+        }])
+        if not response['InternetGateways']:
             return {}
 
-        return response['Vpcs'][0]
+        return response['InternetGateways'][0]
 
     def delete(self):
         pass
 
 
-def run_module(action: str, data: dict):
-    result = dict(
-        changed=False
-    )
+def _get_vpc_id(ig_name, state) -> str:
+    for vpc_entry in state.get("vpcs", []):
+        if vpc_entry.get("internet_gateway", {}).get("name") == ig_name:
+            return vpc_entry.get("vpc", {}).get("VpcId")
 
-    module = DexpoModule(
-        base_arg=VpcInput,
-        extra_args=None
-    )
-    inp = VpcInput(**data)
-    vpc = VpcManager(inp)
+
+def _create_ig(ig: InternetGatewayManager):
+    state = module.get_state()
+    vpc_id = _get_vpc_id(ig.ig_input.name, state)
+    response = ig.create(vpc_id)
+    if not response:
+        logger.info(f"There is an Error while creating internet gateway.")
+    else:
+        module.save_state(response['InternetGateway'])
+
+    return response
+
+
+def _validate_ig(ig: InternetGatewayManager):
+    response = ig.validate()
+    if not response:
+        module.logger.debug(f"No internet gateway found under name {ig.ig_input.name}")
+    else:
+        module.save_state(response)
+
+    return response
+
+
+def run_module(action: str, data: dict, **kwargs):
+    inp = InternetGatewayInput(**data)
+    ig = InternetGatewayManager(inp)
+    module.base_args = ig.ig_input
     if action == 'validate':
-        response = vpc.validate()
-        if 'message' in response:
-            module.logger.debug(response['message'])  # also skip the
-            return
-        if 'VpcId' not in response:
-            module.logger.debug(f"No Vpc found under the name {data['name']} and CIDR block {data['CidrBlock']}")
+        return _validate_ig(ig)
 
-        else:
-            resource = vpc.ec2_resource.Vpc(response['VpcId'])
-            response.update({'resource': resource})
-            result['vpc'] = response
-            result['vpc']['resource'] = resource
-            result['changed'] = True
+    if action == 'create':
+        return _create_ig(ig)
 
-        return result
-
-    elif action == 'create':
-        response, resource = vpc.create()
-        if not response:
-            result['changed'] = False
-        else:
-            result['vpc'] = response
-            result['vpc']['resource'] = resource
-
-        return result
     if action == 'delete':
-        vpc.delete()
+        ig.delete()
