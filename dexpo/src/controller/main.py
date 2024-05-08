@@ -2,9 +2,6 @@ import os.path
 from dexpo.src.lib.utils import Util
 from dexpo.settings import Files
 from dexpo.settings import pluginManager
-from dexpo.src.lib.utils import VpcState
-
-state = VpcState()
 
 
 class Controller(object):

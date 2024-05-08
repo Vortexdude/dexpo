@@ -11,6 +11,18 @@ class DexpoModule(object):
         self.module_type = module_type if module_type else None
         # print("you can validate in the constructor of the DexpoModule \nBefore calling the method")
 
+    def validate_resource(self, identity, response):
+        """It will check the identity key in the response and key in the state file"""
+        if identity not in response:
+            return False
+
+        current_state = self.get_state()
+        for vpc_entry in current_state.get('vpcs', []):
+            if vpc_entry.get(self.module_type, {}).get(identity) == response[identity]:
+                return True
+
+        return False
+
     def save_state(self, data):
         temp_data = self.get_state()
         if data:

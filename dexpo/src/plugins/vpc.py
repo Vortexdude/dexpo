@@ -85,23 +85,19 @@ class VpcManager:
 
 
 def _validate_vpc(vpc: VpcManager) -> None:
-    _current_state = module.get_state()
     response = vpc.validate()
-    if not response:
-        module.save_state(response)
+    if module.validate_resource('VpcId', response):
         return
 
-    for vpc_entry in _current_state.get('vpcs', []):
-        if vpc_entry.get('vpc', {}).get('VpcId') == response['VpcId']:
-            return
+    module.save_state(response)
 
 
-# def identifier(state, resource_name, identity):
-#     for vpc_entry in state.get('vpcs', []):
-#         if vpc_entry.get(resource_name, {}).get(identity) == state[identity]:
-#             return True
-#         else:
-#             return False
+def identifier(state, resource_name, identity, response):
+    for vpc_entry in state.get('vpcs', []):
+        if vpc_entry.get(resource_name, {}).get(identity) == response[identity]:
+            return True
+        else:
+            return False
 
 
 def _create_vpc(vpc: VpcManager) -> None:
