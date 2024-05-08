@@ -11,8 +11,9 @@ class DexpoModule(object):
         self.module_type = module_type if module_type else None
         # print("you can validate in the constructor of the DexpoModule \nBefore calling the method")
 
-    def validate_resource(self, identity, response):
+    def validate_resource(self, identity, response, *args, **kwargs):
         """It will check the identity key in the response and key in the state file"""
+
         if identity not in response:
             return False
 

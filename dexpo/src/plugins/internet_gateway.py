@@ -5,9 +5,8 @@ from dexpo.manager import DexpoModule
 from pydantic import BaseModel, ValidationError
 from typing import Optional
 
-result = dict(
-    changed=False,
-    ig=dict()
+extra_args = dict(
+    resource_type='dict',
 )
 
 
@@ -20,7 +19,7 @@ class InternetGatewayInput(BaseModel):
 
 module = DexpoModule(
     base_arg=InternetGatewayInput,
-    extra_args=None,
+    extra_args=extra_args,
     module_type='internet_gateway'
 )
 
@@ -75,6 +74,7 @@ def _get_vpc_id(ig_name, state) -> str:
 
 
 def _validate_ig(ig: InternetGatewayManager):
+    module.logger.debug("Validating Internet Gateway...")
     response = ig.validate()
     if module.validate_resource('InternetGatewayId', response):
         return
@@ -83,6 +83,7 @@ def _validate_ig(ig: InternetGatewayManager):
 
 
 def _create_ig(ig: InternetGatewayManager):
+    module.logger.debug("creating Internet Gateway...")
     _current_state = module.get_state()
     for vpc_entry in _current_state.get('vpcs', []):
         if vpc_entry.get('internet_gateway', {}).get('InternetGatewayId'):

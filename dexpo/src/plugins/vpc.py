@@ -4,9 +4,8 @@ import boto3
 from dexpo.manager import DexpoModule
 from pydantic import BaseModel
 
-result = dict(
-    changed=False,
-    vpc=dict()
+extra_args = dict(
+    resource_type='dict',
 )
 
 
@@ -20,7 +19,7 @@ class VpcInput(BaseModel):
 
 module = DexpoModule(
     base_arg=VpcInput,
-    extra_args=None,
+    extra_args=extra_args,
     module_type='vpc'
 )
 logger = module.logger
@@ -85,6 +84,7 @@ class VpcManager:
 
 
 def _validate_vpc(vpc: VpcManager) -> None:
+    module.logger.debug("Validating VPC...")
     response = vpc.validate()
     if module.validate_resource('VpcId', response):
         return
@@ -92,15 +92,8 @@ def _validate_vpc(vpc: VpcManager) -> None:
     module.save_state(response)
 
 
-def identifier(state, resource_name, identity, response):
-    for vpc_entry in state.get('vpcs', []):
-        if vpc_entry.get(resource_name, {}).get(identity) == response[identity]:
-            return True
-        else:
-            return False
-
-
 def _create_vpc(vpc: VpcManager) -> None:
+    module.logger.debug("Creating VPC...")
     _current_state = module.get_state()
     for vpc_entry in _current_state.get('vpcs', []):
         if vpc_entry.get('vpc', {}).get('VpcId'):

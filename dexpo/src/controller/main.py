@@ -3,6 +3,8 @@ from dexpo.src.lib.utils import Util
 from dexpo.settings import Files
 from dexpo.settings import pluginManager
 
+SEQUENCE = ['vpc', 'internet_gateway', 'route_tables', 'subnets', 'security_groups']
+
 
 class Controller(object):
     def __init__(self, data=None):
@@ -17,8 +19,7 @@ class Controller(object):
     def validate(self):
         action = 'validate'
         for global_vpc in self.data['vpcs']:
-            modules = list(global_vpc.keys())  # every key in the config refers to a plugin file name
-            for module in modules:
+            for module in SEQUENCE:
                 if not isinstance(global_vpc[module], list):  # loop through non list items
                     pluginManager.call_plugin(
                         plugin_name=module,
@@ -27,20 +28,33 @@ class Controller(object):
                     )
 
                 else:  # loop through list items
-                    print(module)
+                    for index, resource in enumerate(global_vpc[module]):
+                        pluginManager.call_plugin(
+                            plugin_name=module,
+                            action=action,
+                            data=global_vpc[module][index],
+                            index=index
+                        )
 
     def apply(self):
         action = 'create'
         for global_vpc in self.data['vpcs']:
-            modules = list(global_vpc.keys())  # every key in the config refers to a plugin file name
-            for module in modules:
+            for module in SEQUENCE:
                 if not isinstance(global_vpc[module], list):  # loop through non list items
                     pluginManager.call_plugin(
                         plugin_name=module,
                         action=action,
                         data=global_vpc[module]
                     )
-    #
+                else:
+                    for index, resource in enumerate(global_vpc[module]):
+                        pluginManager.call_plugin(
+                            plugin_name=module,
+                            action=action,
+                            data=global_vpc[module][index],
+                            index=index
+                        )
+
     # def apply(self):
     #     data = Util.load_json(Files.STATE_FILE_PATH)
     #     for vpc_data in data['vpcs']:
