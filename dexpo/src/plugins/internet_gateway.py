@@ -52,7 +52,7 @@ class InternetGatewayManager:
                 self.ec2_resource.Vpc(vpc_id).attach_internet_gateway(InternetGatewayId=ig_id)
                 module.logger.info(f"Internet Gateway {self.ig_input.name} attached to vpc {ig_id} Successfully!")
 
-        return response
+        return response['InternetGateway']
 
     def validate(self) -> dict:
         response = self.ec2_client.describe_internet_gateways(Filters=[{
@@ -85,13 +85,18 @@ def _validate_ig(ig: InternetGatewayManager):
 
 
 def _create_ig(ig: InternetGatewayManager):
-    state = module.get_state()
-    vpc_id = _get_vpc_id(ig.ig_input.name, state)
+    _current_state = module.get_state()
+    for vpc_entry in _current_state.get('vpcs', []):
+        if vpc_entry.get('internet_gateway', {}).get('InternetGatewayId'):
+            module.logger.info('InternetGateway already exist')
+            return
+
+    vpc_id = _get_vpc_id(ig.ig_input.name, _current_state)
     response = ig.create(vpc_id)
     if not response:
         logger.info(f"There is an Error while creating internet gateway.")
     else:
-        module.save_state(response['InternetGateway'])
+        module.save_state(response)
 
     return response
 
