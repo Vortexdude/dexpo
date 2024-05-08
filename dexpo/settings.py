@@ -13,7 +13,6 @@ else:
     log_level = 'info'
 
 project_home_dir_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-user_home_dir = os.path.expanduser('~')
 config_dir_path = os.path.join(project_home_dir_path, 'config', "config.json")
 state_file_path = os.path.join(project_home_dir_path, 'state.json')
 temp_state_file_path = os.path.join(project_home_dir_path, 'temp_state.json')

@@ -1,7 +1,7 @@
 """These are docstrings basically a documentation of the module"""
 
 import boto3
-from .test import DexpoModule
+from dexpo.manager import DexpoModule
 from pydantic import BaseModel, ValidationError
 from typing import Optional
 
@@ -30,15 +30,8 @@ logger = module.logger
 class InternetGatewayManager:
     def __init__(self, ig_input: InternetGatewayInput):
         self.ig_input = ig_input
-        self.validate_data()
         self.ec2_client = boto3.client("ec2", region_name=self.ig_input.region)
         self.ec2_resource = boto3.resource('ec2', region_name=self.ig_input.region)
-
-    def validate_data(self):
-        try:
-            self.ig_input = InternetGatewayInput(**self.ig_input.dict())
-        except ValidationError as e:
-            raise e
 
     def create(self, vpc_id) -> dict:
         """launch the vpc if the vpc not available"""
@@ -81,6 +74,16 @@ def _get_vpc_id(ig_name, state) -> str:
             return vpc_entry.get("vpc", {}).get("VpcId")
 
 
+def _validate_ig(ig: InternetGatewayManager):
+    response = ig.validate()
+    if not response:
+        module.logger.debug(f"No internet gateway found under name {ig.ig_input.name}")
+    else:
+        module.save_state(response)
+
+    return response
+
+
 def _create_ig(ig: InternetGatewayManager):
     state = module.get_state()
     vpc_id = _get_vpc_id(ig.ig_input.name, state)
@@ -89,16 +92,6 @@ def _create_ig(ig: InternetGatewayManager):
         logger.info(f"There is an Error while creating internet gateway.")
     else:
         module.save_state(response['InternetGateway'])
-
-    return response
-
-
-def _validate_ig(ig: InternetGatewayManager):
-    response = ig.validate()
-    if not response:
-        module.logger.debug(f"No internet gateway found under name {ig.ig_input.name}")
-    else:
-        module.save_state(response)
 
     return response
 

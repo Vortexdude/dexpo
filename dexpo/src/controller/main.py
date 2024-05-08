@@ -10,7 +10,8 @@ state = VpcState()
 class Controller(object):
     def __init__(self, data=None):
         self.data = data.model_dump() if data else {}
-        Util.save_to_file(Files.STATE_FILE_PATH, self.data)
+        if not Util.file_existence(Files.STATE_FILE_PATH):
+            Util.save_to_file(Files.STATE_FILE_PATH, self.data)
 
     @staticmethod
     def store_state(file=Files.STATE_FILE_PATH, data=None):
@@ -22,16 +23,14 @@ class Controller(object):
             modules = list(global_vpc.keys())  # every key in the config refers to a plugin file name
             for module in modules:
                 if not isinstance(global_vpc[module], list):  # loop through non list items
-                    response = pluginManager.call_plugin(
+                    pluginManager.call_plugin(
                         plugin_name=module,
                         action=action,
                         data=global_vpc[module]
                     )
 
-                    # print("Not changed!")
                 else:  # loop through list items
                     pass
-            # print(global_vpc)
 
     def apply(self):
         action = 'create'
@@ -39,12 +38,11 @@ class Controller(object):
             modules = list(global_vpc.keys())  # every key in the config refers to a plugin file name
             for module in modules:
                 if not isinstance(global_vpc[module], list):  # loop through non list items
-                    response = pluginManager.call_plugin(
+                    pluginManager.call_plugin(
                         plugin_name=module,
                         action=action,
                         data=global_vpc[module]
                     )
-                    print(response)
     #
     # def apply(self):
     #     data = Util.load_json(Files.STATE_FILE_PATH)

@@ -12,7 +12,7 @@ class DexpoModule(object):
         # print("you can validate in the constructor of the DexpoModule \nBefore calling the method")
 
     def save_state(self, data):
-        temp_data = Util.load_json(self.state_file_path)
+        temp_data = self.get_state()
         if data:
             if 'vpcs' not in temp_data:
                 return
@@ -22,6 +22,9 @@ class DexpoModule(object):
                 global_vpc[self.module_type].update(data)
                 Util.save_to_file(self.state_file_path, temp_data)
                 self.logger.debug(f"Data Stored in state {self.state_file_path}.")
+
+    def update_state(self, state, data):
+        pass
 
     def get_state(self) -> dict | None:
         return Util.load_json(self.state_file_path)

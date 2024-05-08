@@ -1,7 +1,7 @@
 """These are docstrings basically a documentation of the module"""
 
 import boto3
-from .test import DexpoModule
+from dexpo.manager import DexpoModule
 from pydantic import BaseModel
 
 result = dict(
@@ -51,7 +51,7 @@ class VpcManager:
                 }]
             )  # adding name to the VPC
 
-            return response
+            return response['Vpc']
         else:
             return {}
 
@@ -71,7 +71,8 @@ class VpcManager:
 
             })
         else:
-            return {'message': "For search the vpc need to give Identification"}
+            module.logger.error('For search the vpc need to give Identification')
+            return {}
 
         response = self.ec2_client.describe_vpcs(Filters=filters)
         if not response['Vpcs']:
@@ -83,24 +84,30 @@ class VpcManager:
         pass
 
 
-def _validate_vpc(vpc: VpcManager):
+def _validate_vpc(vpc: VpcManager) -> None:
     response = vpc.validate()
-    module.save_state(response)
-    if not response:
+    if response:
+        module.save_state(response)
+    else:
         module.logger.debug(
-            f"No Vpc found under the name {vpc.vpc_input.name} and CIDR block {vpc.vpc_input.CidrBlock}")
+            f"No Vpc found under the name {vpc.vpc_input.name} and \
+            CIDR block {vpc.vpc_input.CidrBlock}"
+        )
 
-    return response
 
+def _create_vpc(vpc: VpcManager) -> None:
+    _current_state = module.get_state()
+    for vpc_entry in _current_state.get('vpcs', []):
+        if vpc_entry.get('vpc', {}).get('VpcId'):
+            module.logger.info('Vpc already exist')
+            return
 
-def _create_vpc(vpc: VpcManager):
     response = vpc.create()
     if response:
-        module.save_state(response['Vpc'])
+        module.save_state(response)
         logger.info(f"{vpc.vpc_input.name} VPC Created Successfully!")
     else:
         logger.warn(f"Could not able to create VPC {vpc.vpc_input.name}")
-    return response
 
 
 def _delete_vpc(vpc_name: str):
