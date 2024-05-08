@@ -36,17 +36,21 @@ logger = loginit.get_logger()
 
 logger.debug("Logging Initialize ... .. .")
 
-project_aws_credentials_path = os.path.join(project_home_dir_path, '.aws', 'credentials')
-user_aws_credentials_path = os.path.join(user_home_dir, '.aws', 'credentials')
+aws_credentials_paths = [
+    os.path.expanduser('~/.aws/credentials'),
+    os.path.join(project_home_dir_path, '.aws', 'credentials')
+]
 
 
 def initializer():
     """Add new function to validate something before run the program"""
     try:
-        validate_aws_credentials(project_aws_credentials_path, user_aws_credentials_path)
+        validate_aws_credentials(aws_credentials_paths)
         logger.debug("Credentials found in the desired path")
     except FileNotFoundError as e:
         logger.error("No credentials found in the desired location")
+        import sys
+        sys.exit(0)
 
 
 args = DexpoArgParser()

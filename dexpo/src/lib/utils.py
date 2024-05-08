@@ -195,14 +195,12 @@ def get_env(var):
     return os.environ.get(var)
 
 
-def validate_aws_credentials(home_path, project_path):
-    if Util.file_existence(home_path):
-        return
+def validate_aws_credentials(aws_credentials_paths):
+    for file in aws_credentials_paths:
+        if Util.file_existence(file):
+            return False
 
-    elif Util.file_existence(project_path):
-        return
-
-    elif 'AWS_ACCESS_KEY_ID' in os.environ and 'AWS_SECRET_ACCESS_KEY' in os.environ:
+    if 'AWS_ACCESS_KEY_ID' in os.environ and 'AWS_SECRET_ACCESS_KEY' in os.environ:
         return True
 
     else:
