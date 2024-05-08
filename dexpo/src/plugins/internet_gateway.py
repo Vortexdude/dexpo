@@ -75,13 +75,15 @@ def _get_vpc_id(ig_name, state) -> str:
 
 
 def _validate_ig(ig: InternetGatewayManager):
+    _current_state = module.get_state()
     response = ig.validate()
     if not response:
-        module.logger.debug(f"No internet gateway found under name {ig.ig_input.name}")
-    else:
         module.save_state(response)
+        return
 
-    return response
+    for vpc_entry in _current_state.get('vpcs', []):
+        if vpc_entry.get('internet_gateway', {}).get('InternetGatewayId') == response['InternetGatewayId']:
+            return
 
 
 def _create_ig(ig: InternetGatewayManager):

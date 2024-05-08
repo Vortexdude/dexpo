@@ -30,7 +30,7 @@ class Controller(object):
                     )
 
                 else:  # loop through list items
-                    pass
+                    print(module)
 
     def apply(self):
         action = 'create'
