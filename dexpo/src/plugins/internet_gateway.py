@@ -45,11 +45,11 @@ class InternetGatewayManager:
         )
 
         if response['InternetGateway']:
-            module.logger.info(f"Internet Gateway {self.ig_input.name} Created Successfully!")
+            logger.info(f"Internet Gateway {self.ig_input.name} Created Successfully!")
             ig_id = response['InternetGateway']['InternetGatewayId']
             if vpc_id:
                 self.ec2_resource.Vpc(vpc_id).attach_internet_gateway(InternetGatewayId=ig_id)
-                module.logger.info(f"Internet Gateway {self.ig_input.name} attached to vpc {ig_id} Successfully!")
+                logger.info(f"Internet Gateway {self.ig_input.name} attached to vpc {ig_id} Successfully!")
 
         return response['InternetGateway']
 
@@ -74,7 +74,7 @@ def _get_vpc_id(ig_name, state) -> str:
 
 
 def _validate_ig(ig: InternetGatewayManager):
-    module.logger.debug("Validating Internet Gateway...")
+    logger.debug("Validating Internet Gateway.......")
     response = ig.validate()
     if module.validate_resource('InternetGatewayId', response):
         return
@@ -83,11 +83,11 @@ def _validate_ig(ig: InternetGatewayManager):
 
 
 def _create_ig(ig: InternetGatewayManager):
-    module.logger.debug("creating Internet Gateway...")
+    logger.debug("creating Internet Gateway...")
     _current_state = module.get_state()
     for vpc_entry in _current_state.get('vpcs', []):
         if vpc_entry.get('internet_gateway', {}).get('InternetGatewayId'):
-            module.logger.info('InternetGateway already exist')
+            logger.info('InternetGateway already exist')
             return
 
     vpc_id = _get_vpc_id(ig.ig_input.name, _current_state)

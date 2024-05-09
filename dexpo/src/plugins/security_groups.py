@@ -88,21 +88,21 @@ class SecurityGroupManager:
 
 
 def _validate_security_group(rt: SecurityGroupManager, index):
-    print(f"Validating SecurityGroup {index}........")
+    logger.debug("Validating Security Groups...")
 
 
 def _create_security_group(rt: SecurityGroupManager, index):
-    print(f"Creating SecurityGroup {index}........")
+    logger.debug("Creating Security Groups...")
 
 
 def _delete_security_group(rt: SecurityGroupManager, index):
-    print(f"deleting SecurityGroup {index}........")
+    logger.debug("Deleting Security Groups...")
 
 
 def run_module(action: str, data: dict, *args, **kwargs):
     inp = SecurityGroupInput(**data)
     rt = SecurityGroupManager(inp)
-
+    module.extra_args['index'] = kwargs['index']
     if action == 'validate':
         return _validate_security_group(rt, index=kwargs['index'])
 

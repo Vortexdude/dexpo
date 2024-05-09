@@ -24,7 +24,7 @@ class SubnetsInput(BaseModel):
 
 module = DexpoModule(
     base_arg=SubnetsInput,
-    extra_args=None,
+    extra_args=extra_args,
     module_type='subnets'
 )
 logger = module.logger
@@ -77,27 +77,29 @@ class SubnetManager:
                     logger.warning(f"Subnet {self.sb_input.name} already exist")
 
 
-def _validate_subnets(rt: SubnetManager, index):
-    print(f"Validating Subnets {index}........")
+def _validate_subnets(rt: SubnetManager):
+    logger.debug("Validating Subnet...")
 
 
-def _create_subnets(rt: SubnetManager, index):
-    print(f"Creating Subnets {index}........")
+def _create_subnets(rt: SubnetManager):
+    logger.debug("Creating Subnet...")
 
 
-def _delete_subnets(rt: SubnetManager, index):
-    print(f"deleting Subnets {index}........")
+def _delete_subnets(rt: SubnetManager):
+    logger.debug("Deleting Subnet...")
 
 
 def run_module(action: str, data: dict, *args, **kwargs):
     inp = SubnetsInput(**data)
     rt = SubnetManager(inp)
 
+    module.extra_args['index'] = kwargs['index']
+
     if action == 'validate':
-        return _validate_subnets(rt, index=kwargs['index'])
+        return _validate_subnets(rt)
 
     elif action == 'create':
-        return _create_subnets(rt, index=kwargs['index'])
+        return _create_subnets(rt)
 
     elif action == 'delete':
-        return _delete_subnets(rt, index=kwargs['index'])
+        return _delete_subnets(rt)

@@ -19,22 +19,33 @@ class DexpoModule(object):
 
         current_state = self.get_state()
         for vpc_entry in current_state.get('vpcs', []):
-            if vpc_entry.get(self.module_type, {}).get(identity) == response[identity]:
-                return True
+            if self.extra_args['resource_type'] == 'list':  # check for list type.
+                index = int(self.extra_args['index'])
+                if vpc_entry.get(self.module_type)[index].get(identity) == response[identity]:
+                    return True
+            else:
+                if vpc_entry.get(self.module_type, {}).get(identity) == response[identity]:
+                    return True
 
         return False
 
     def save_state(self, data):
         temp_data = self.get_state()
-        if data:
-            if 'vpcs' not in temp_data:
+        if not data and 'vpcs' not in temp_data:  # return if not data
+            return
+
+        for global_vpc in temp_data['vpcs']:
+            if self.module_type not in global_vpc:  # return if module not found
                 return
-            for global_vpc in temp_data['vpcs']:
-                if self.module_type not in global_vpc:
-                    return
+
+            if self.extra_args['resource_type'] == 'list':  # check for list type.
+                index = int(self.extra_args['index'])
+                global_vpc[self.module_type][index].update(data)
+            else:
                 global_vpc[self.module_type].update(data)
-                Util.save_to_file(self.state_file_path, temp_data)
-                self.logger.debug(f"Data Stored in state {self.state_file_path}.")
+
+            Util.save_to_file(self.state_file_path, temp_data)  # save to file
+            self.logger.debug(f"Data Stored in state {self.state_file_path}.")
 
     def update_state(self, state, data):
         pass

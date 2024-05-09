@@ -5,7 +5,7 @@ import os
 from dexpo.banner import banner
 project_name = 'dexpo'
 
-DEBUG = False
+DEBUG = True
 
 if DEBUG:
     log_level = 'debug'

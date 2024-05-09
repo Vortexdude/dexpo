@@ -70,7 +70,7 @@ class VpcManager:
 
             })
         else:
-            module.logger.error('For search the vpc need to give Identification')
+            logger.error('For search the vpc need to give Identification')
             return {}
 
         response = self.ec2_client.describe_vpcs(Filters=filters)
@@ -84,7 +84,7 @@ class VpcManager:
 
 
 def _validate_vpc(vpc: VpcManager) -> None:
-    module.logger.debug("Validating VPC...")
+    logger.debug("Validating VPC........")
     response = vpc.validate()
     if module.validate_resource('VpcId', response):
         return
@@ -93,11 +93,11 @@ def _validate_vpc(vpc: VpcManager) -> None:
 
 
 def _create_vpc(vpc: VpcManager) -> None:
-    module.logger.debug("Creating VPC...")
+    logger.debug("Creating VPC........")
     _current_state = module.get_state()
     for vpc_entry in _current_state.get('vpcs', []):
         if vpc_entry.get('vpc', {}).get('VpcId'):
-            module.logger.info('Vpc already exist')
+            logger.info('Vpc already exist')
             return
 
     response = vpc.create()

@@ -56,16 +56,20 @@ class RouteTableManager:
                     GatewayId=ig_id
                 )
 
-                logger.info(f"Route Table {self.rt_input.name} Created Successfully!")
+                logger.info(f"Public Route Table {self.rt_input.name} Created Successfully!")
+            else:
+                logger.info(f"Private Route Table {self.rt_input.name} Created Successfully!")
             return self.validate()
 
 
 def _validate_route_table(rt: RouteTableManager):
-    print(f"Validating Route Table........")
+    logger.debug("Validating Route Table...")
     response = rt.validate()
-    # _current_state = module.get_state()
-    if not response:
-        logger.info("No Route table found in the cloud.")
+
+    if module.validate_resource('RouteTableId', response):
+        return
+
+    module.save_state(response)
 
 
 def get_resource_values(route_table_name, request):
@@ -82,18 +86,24 @@ def get_resource_values(route_table_name, request):
 
 
 def _create_route_table(rt: RouteTableManager):
-    print(f"Creating Route Table........")
+    logger.debug("Creating Route Table........")
+    _current_state = module.get_state()
+    for vpc_entry in _current_state.get('vpcs', []):
+        index = module.extra_args['index']
+        if vpc_entry.get('route_tables', [])[index].get('RouteTableId'):
+            logger.info('Route Table already exist')
+            return
+
     vpc_id = get_resource_values(rt.rt_input.name, 'VpcId')
     vpc_resource = boto3.resource('ec2').Vpc(vpc_id)
     ig_id = get_resource_values(rt.rt_input.name, 'InternetGatewayId') if rt.rt_input.DestinationCidrBlock else None
     response = rt.create(vpc_resource, ig_id=ig_id)
     if response:
-        module.save_state()
-    print(response)
+        module.save_state(response)
 
 
 def _delete_route_table(rt: RouteTableManager):
-    print(f"Deleting Route Table........")
+    logger.debug("Deleting Route Table........")
 
 
 def run_module(action: str, data: dict, *args, **kwargs):
