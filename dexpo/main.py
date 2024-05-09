@@ -10,8 +10,7 @@ def main(action):
         controller.apply()
 
     elif action == 'destroy':
-        pass
-        # controller.destroy()
+        controller.destroy()
 
 
 if __name__ == "__main__":

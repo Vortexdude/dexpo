@@ -61,6 +61,10 @@ class RouteTableManager:
                 logger.info(f"Private Route Table {self.rt_input.name} Created Successfully!")
             return self.validate()
 
+    def delete(self, rt_resource):
+        rt_resource.delete()
+        logger.info(f"Route Table {self.rt_input.name} deleted successfully")
+
 
 def _validate_route_table(rt: RouteTableManager):
     logger.debug("Validating Route Table...")
@@ -102,6 +106,19 @@ def _create_route_table(rt: RouteTableManager):
 
 def _delete_route_table(rt: RouteTableManager):
     logger.debug("Deleting Route Table........")
+    _current_state = module.get_state()
+    for global_vpc in _current_state.get('vpcs', []):
+        index = module.extra_args['index']
+        route_table = global_vpc.get('route_tables')[index]
+        if route_table.get('name') == rt.rt_input.name:
+            if 'RouteTableId' in route_table:
+                rt_id = route_table['RouteTableId']
+                rt_resource = boto3.resource('ec2').RouteTable(rt_id)
+                rt.delete(rt_resource)
+                # rt.rt_input.model_dump()
+                module.save_state(data=rt.rt_input.model_dump())
+            else:
+                logger.info("No Route Table found in the state")
 
 
 def run_module(action: str, data: dict, *args, **kwargs):

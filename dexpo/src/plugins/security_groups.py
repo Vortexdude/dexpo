@@ -80,6 +80,10 @@ class SecurityGroupManager:
 
         return self.validate()
 
+    def delete(self, sg_resource):
+        sg_resource.delete()
+        logger.info(f"Security Group {self.sg_input.name} Deleted Successfully.")
+
 
 def _validate_security_group(sg: SecurityGroupManager):
     logger.debug("Validating Security Groups...")
@@ -111,6 +115,18 @@ def _create_security_group(sg: SecurityGroupManager):
 
 def _delete_security_group(sg: SecurityGroupManager):
     logger.debug("Deleting Security Groups...")
+    _current_state = module.get_state()
+    for global_vpc in _current_state.get('vpcs', []):
+        index = int(module.extra_args['index'])
+        security_group = global_vpc.get('security_groups')[index]
+        if security_group.get('name') == sg.sg_input.name:
+            if 'GroupId' in security_group:
+                sg_id = security_group['GroupId']
+                sg_resource = boto3.resource('ec2').SecurityGroup(sg_id)
+                sg.delete(sg_resource)
+                module.save_state(data=sg.sg_input.model_dump())
+            else:
+                logger.info("No security Group find in the state")
 
 
 def run_module(action: str, data: dict, *args, **kwargs):

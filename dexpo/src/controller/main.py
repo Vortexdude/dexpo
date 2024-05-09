@@ -55,11 +55,23 @@ class Controller(object):
                             index=index
                         )
 
-    # def apply(self):
-    #     data = Util.load_json(Files.STATE_FILE_PATH)
-    #     for vpc_data in data['vpcs']:
-    #         dh = DeployHandler(data=vpc_data)
-    #         dh.launch()
-    #
-    # def destroy(self):
-    #     print('destroying...')
+    def destroy(self):
+        sequence = ['internet_gateway', 'subnets', 'route_tables', 'security_groups', 'vpc']
+        action = 'delete'
+        data = Util.load_json(Files.STATE_FILE_PATH)
+        for global_vpc in data.get('vpcs', []):
+            for module in sequence:
+                if not isinstance(global_vpc[module], list):  # loop through non list items
+                    pluginManager.call_plugin(
+                        plugin_name=module,
+                        action=action,
+                        data=global_vpc[module]
+                    )
+                else:
+                    for index, resource in enumerate(global_vpc[module]):
+                        pluginManager.call_plugin(
+                            plugin_name=module,
+                            action=action,
+                            data=global_vpc[module][index],
+                            index=index
+                        )

@@ -79,8 +79,14 @@ class VpcManager:
 
         return response['Vpcs'][0]
 
-    def delete(self):
-        pass
+    def delete(self, vpc_id):
+        """ Delete the VPC """
+        try:
+            self.ec2_client.delete_vpc(VpcId=vpc_id)
+            logger.info("VPC Deleted Successfully!")
+        except Exception as e:
+            logger.error("Cant able to delete the VPC")
+            raise Exception("cant able to delete VPC")
 
 
 def _validate_vpc(vpc: VpcManager) -> None:
@@ -108,8 +114,15 @@ def _create_vpc(vpc: VpcManager) -> None:
         logger.warn(f"Could not able to create VPC {vpc.vpc_input.name}")
 
 
-def _delete_vpc(vpc_name: str):
-    pass
+def _delete_vpc(vpc: VpcManager):
+    _current_state = module.get_state()
+    for global_vpc in _current_state.get('vpcs', []):
+        if 'vpc' not in global_vpc and not global_vpc.get('vpc', {}).get('VpcId'):
+            logger.error("cant able to find vpc in state")
+            return
+        vpc_id = global_vpc.get('vpc', {}).get('VpcId')
+        vpc.delete(vpc_id)
+        module.save_state(data=vpc.vpc_input.model_dump())
 
 
 def run_module(action: str, data: dict):
@@ -123,4 +136,4 @@ def run_module(action: str, data: dict):
         return _create_vpc(vpc)
 
     elif action == 'delete':
-        return _delete_vpc(vpc_name="nothing")
+        return _delete_vpc(vpc)

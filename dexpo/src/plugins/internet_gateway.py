@@ -49,7 +49,7 @@ class InternetGatewayManager:
             ig_id = response['InternetGateway']['InternetGatewayId']
             if vpc_id:
                 self.ec2_resource.Vpc(vpc_id).attach_internet_gateway(InternetGatewayId=ig_id)
-                logger.info(f"Internet Gateway {self.ig_input.name} attached to vpc {ig_id} Successfully!")
+                logger.info(f"Internet Gateway {self.ig_input.name} attached to vpc {vpc_id} Successfully!")
 
         return response['InternetGateway']
 
@@ -63,8 +63,15 @@ class InternetGatewayManager:
 
         return response['InternetGateways'][0]
 
-    def delete(self):
-        pass
+    @staticmethod
+    def delete(vpc_resource, vpc_id):
+        internet_gateways = vpc_resource.internet_gateways.all()
+        if internet_gateways:
+            for internet_gateway in internet_gateways:
+                logger.info(f"Detaching and Removing igw-id {internet_gateway.id}")
+                internet_gateway.detach_from_vpc(VpcId=vpc_id)
+                internet_gateway.delete()  # dry_run=True
+                logger.info("Internet Gateway Deleted Successfully")
 
 
 def _get_vpc_id(ig_name, state) -> str:
@@ -100,6 +107,19 @@ def _create_ig(ig: InternetGatewayManager):
     return response
 
 
+def _delete_ig(ig: InternetGatewayManager):
+    logger.debug("Deleting Internet Gateway...")
+    _current_state = module.get_state()
+    for vpc_entry in _current_state.get('vpcs', []):
+        if vpc_entry.get('internet_gateway', {}).get('InternetGatewayId'):
+            vpc_id = module.get_resource_values('internet_gateway', ig.ig_input.name, 'VpcId')
+            vpc_resource = boto3.resource('ec2').Vpc(vpc_id)
+            ig.delete(vpc_resource, vpc_id)
+            module.save_state(data=ig.ig_input.model_dump())
+        else:
+            logger.warn("Can't find the Internet GatewayId")
+
+
 def run_module(action: str, data: dict, **kwargs):
     inp = InternetGatewayInput(**data)
     ig = InternetGatewayManager(inp)
@@ -111,4 +131,4 @@ def run_module(action: str, data: dict, **kwargs):
         return _create_ig(ig)
 
     if action == 'delete':
-        ig.delete()
+        return _delete_ig(ig)

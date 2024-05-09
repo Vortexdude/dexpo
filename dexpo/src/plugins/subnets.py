@@ -75,6 +75,11 @@ class SubnetManager:
                 if e.response['Error']['Code'] == 'InvalidSubnet.Conflict':
                     logger.warning(f"Subnet {self.sb_input.name} already exist")
 
+    def delete(self, sb_resource):
+        """ Delete the subnets """
+        sb_resource.delete()
+        logger.info(f"Subnet {self.sb_input.name} deleted successfully")
+
 
 def _validate_subnets(sb: SubnetManager):
     logger.debug("Validating Subnet...")
@@ -116,6 +121,20 @@ def _create_subnets(sb: SubnetManager):
 
 def _delete_subnets(sb: SubnetManager):
     logger.debug("Deleting Subnet...")
+    _current_state = module.get_state()
+    index = module.extra_args['index']
+    for global_vpc in _current_state.get('vpcs', []):
+        subnet = global_vpc.get('subnets')[index]
+        if subnet['name'] == sb.sb_input.name:
+            if 'SubnetId' in subnet:
+                sb_id = subnet['SubnetId']
+                sb_resource = boto3.resource('ec2').Subnet(sb_id)
+                sb.delete(sb_resource)
+                module.save_state(data=sb.sb_input.model_dump())
+            else:
+                logger.info("No Subnet found in the State")
+
+
 
 
 def run_module(action: str, data: dict, *args, **kwargs):
