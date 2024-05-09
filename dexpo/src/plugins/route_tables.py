@@ -72,21 +72,9 @@ def _validate_route_table(rt: RouteTableManager):
     module.save_state(response)
 
 
-def get_resource_values(route_table_name, request):
-    _current_state = module.get_state()
-    for vpc_entry in _current_state.get('vpcs', []):
-        for rt in vpc_entry.get('route_tables', []):
-            if rt.get('name') == route_table_name:
-                if request == 'VpcId':
-                    return vpc_entry['vpc']['VpcId']
-                elif request == 'InternetGatewayId':
-                    return vpc_entry['internet_gateway']['InternetGatewayId']
-                else:
-                    return
-
-
 def _create_route_table(rt: RouteTableManager):
     logger.debug("Creating Route Table........")
+    ig_id = None
     _current_state = module.get_state()
     for vpc_entry in _current_state.get('vpcs', []):
         index = module.extra_args['index']
@@ -94,9 +82,19 @@ def _create_route_table(rt: RouteTableManager):
             logger.info('Route Table already exist')
             return
 
-    vpc_id = get_resource_values(rt.rt_input.name, 'VpcId')
+    vpc_id = module.get_resource_values(
+        vpc_resource='route_tables',
+        resource_name=rt.rt_input.name,
+        request='VpcId',
+    )
     vpc_resource = boto3.resource('ec2').Vpc(vpc_id)
-    ig_id = get_resource_values(rt.rt_input.name, 'InternetGatewayId') if rt.rt_input.DestinationCidrBlock else None
+    if rt.rt_input.DestinationCidrBlock:
+        ig_id = module.get_resource_values(
+            vpc_resource='route_tables',
+            resource_name=rt.rt_input.name,
+            request='InternetGatewayId',
+        )
+
     response = rt.create(vpc_resource, ig_id=ig_id)
     if response:
         module.save_state(response)

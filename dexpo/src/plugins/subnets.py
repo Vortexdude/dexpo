@@ -6,7 +6,6 @@ from botocore.exceptions import ClientError
 from dexpo.manager import DexpoModule
 from pydantic import BaseModel
 
-
 REGION = 'ap-south-1'
 
 extra_args = dict(
@@ -58,7 +57,7 @@ class SubnetManager:
             try:
                 subnet = vpc_resource.create_subnet(
                     CidrBlock=self.sb_input.cidr,
-                    AvailabilityZone=f"{self.sb_input.region}{self.sb_input.zone}"
+                    AvailabilityZone=f"{REGION}{self.sb_input.zone}"
                 )
 
                 subnet.create_tags(
@@ -70,36 +69,66 @@ class SubnetManager:
 
                 rt_resource.associate_with_subnet(SubnetId=subnet.id)
                 logger.info(f"Subnet {self.sb_input.name} created successfully!")
-                return subnet.id
+                return self.validate()
 
             except ClientError as e:
                 if e.response['Error']['Code'] == 'InvalidSubnet.Conflict':
                     logger.warning(f"Subnet {self.sb_input.name} already exist")
 
 
-def _validate_subnets(rt: SubnetManager):
+def _validate_subnets(sb: SubnetManager):
     logger.debug("Validating Subnet...")
+    response = sb.validate()
+
+    if module.validate_resource('SubnetId', response):
+        return
+
+    module.save_state(response)
 
 
-def _create_subnets(rt: SubnetManager):
+def _create_subnets(sb: SubnetManager):
     logger.debug("Creating Subnet...")
+    _current_state = module.get_state()
+    for vpc_entry in _current_state.get('vpcs', []):
+        index = module.extra_args['index']
+        if vpc_entry.get('subnets', [])[index].get('SubnetId'):
+            logger.info('Subnet is already present.')
+            return
+
+    vpc_id = module.get_resource_values(
+        vpc_resource='subnets',
+        resource_name=sb.sb_input.name,
+        request='VpcId'
+    )
+
+    rt_id = module.get_resource_values(
+        vpc_resource='subnets',
+        resource_name=sb.sb_input.name,
+        request='RouteTableId'
+    )
+    rt_resource = boto3.resource('ec2').RouteTable(rt_id)
+    vpc_resource = boto3.resource('ec2').Vpc(vpc_id)
+
+    response = sb.create(vpc_resource, rt_resource)
+    if response:
+        module.save_state(response)
 
 
-def _delete_subnets(rt: SubnetManager):
+def _delete_subnets(sb: SubnetManager):
     logger.debug("Deleting Subnet...")
 
 
 def run_module(action: str, data: dict, *args, **kwargs):
     inp = SubnetsInput(**data)
-    rt = SubnetManager(inp)
+    sb = SubnetManager(inp)
 
     module.extra_args['index'] = kwargs['index']
 
     if action == 'validate':
-        return _validate_subnets(rt)
+        return _validate_subnets(sb)
 
     elif action == 'create':
-        return _create_subnets(rt)
+        return _create_subnets(sb)
 
     elif action == 'delete':
-        return _delete_subnets(rt)
+        return _delete_subnets(sb)

@@ -11,6 +11,34 @@ class DexpoModule(object):
         self.module_type = module_type if module_type else None
         # print("you can validate in the constructor of the DexpoModule \nBefore calling the method")
 
+    def get_resource_values(self, vpc_resource, resource_name, request):
+        _current_state = self.get_state()
+        for vpc_entry in _current_state.get('vpcs', []):
+            if self.extra_args.get('resource_type') == 'list':
+                index = self.extra_args['index']
+                if vpc_entry.get(vpc_resource)[index].get('name') == resource_name:
+                    if request == 'VpcId':
+                        return vpc_entry['vpc']['VpcId']
+                    elif request == 'InternetGatewayId':
+                        return vpc_entry['internet_gateway']['InternetGatewayId']
+                    elif request == 'RouteTableId':
+                        rt_name = vpc_entry.get(vpc_resource)[index].get('route_table')  # from subnet get route table
+                        for rt in vpc_entry.get('route_tables'):  # from route tables fetch the above one.
+                            if rt['name'] == rt_name:
+                                return rt['RouteTableId']
+
+                        return vpc_entry['internet_gateway']['InternetGatewayId']
+                    else:
+                        return
+            else:
+                if vpc_entry.get(vpc_resource).get('name') == resource_name:
+                    if request == 'VpcId':
+                        return vpc_entry['vpc']['VpcId']
+                    elif request == 'InternetGatewayId':
+                        return vpc_entry['internet_gateway']['InternetGatewayId']
+                    else:
+                        return
+
     def validate_resource(self, identity, response, *args, **kwargs):
         """It will check the identity key in the response and key in the state file"""
 
