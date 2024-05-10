@@ -1,6 +1,5 @@
 from dexpo.src.lib.parser import DexpoArgParser
-from dexpo.src.lib.utils import get_conf, PluginManager
-from dexpo.src.lib.utils import validate_aws_credentials, DexLogger
+from dexpo.src.lib.utils import DexLogger, PluginManager, validate_aws_credentials, get_conf
 import os
 from dexpo.banner import banner
 project_name = 'dexpo'
@@ -46,7 +45,7 @@ def initializer():
     try:
         validate_aws_credentials(aws_credentials_paths)
         logger.debug("Credentials found in the desired path")
-    except FileNotFoundError as e:
+    except FileNotFoundError:
         logger.error("No credentials found in the desired location")
         import sys
         sys.exit(0)
