@@ -17,22 +17,24 @@ This repository contains a Python script that utilizes Boto3, the AWS SDK for Py
     git clone https://github.com/Vortexdude/dexpo
     ```
 
-2. Create virtual environment
+2. Go to the project Directory
     ``` bash
-   python3 -m venv venv
-   source venv/bin/activate
-   export PYTHONPATH=$PWD
+   cd dexpo
    ```
 
 3. Install dependencies:
 
     ```bash
-    pip3 install -r requirements.txt 
+    make install 
     ```
 
 ## Configuration
 
-Before running the script, you need to configure the AWS credentials and other necessary parameters in the JSON configuration file (`devops/env/config.json`). Example configuration:
+Before running the script, you need to configure the AWS credentials and other necessary parameters in project home directory or user home direcotry
+</br>
+
+JSON configuration file (`dexpo/config/config.json`). Example configuration:
+
 
 ```json
 {
@@ -115,22 +117,31 @@ Before running the script, you need to configure the AWS credentials and other n
 }
 ```
 
-Make sure to replace placeholders with your actual AWS credentials and other relevant information.
+Make sure to create aws credentials file in the user home directory or project home directory.
+example - 
+``` bash
+ls ~/.aws/credentials
+ls ./dexpo/.aws/credentils
+```
+or set the Environment variable
+
+``` bash
+export aws_access_key_id=''
+export aws_secret_access_key=''
+```
 
 ## Usage
-
-Run the Python script (`main.py`) with the following commands:
 
 To create AWS infrastructure:
 
 ```bash
-pythone main.py apply
+make apply
 ```
 
 To delete AWS infrastructure:
 
 ```bash
-pythone main.py destroy
+make destroy
 ```
 
 ## Contributing
