@@ -1,25 +1,25 @@
 from dexpo.src.lib.parser import DexpoArgParser
-from dexpo.src.lib.utils import get_conf, PluginManager
-from dexpo.src.lib.utils import validate_aws_credentials, DexLogger
+from dexpo.src.lib.utils import DexLogger, PluginManager, validate_aws_credentials, get_conf
 import os
 from dexpo.banner import banner
 project_name = 'dexpo'
 
-DEBUG = True
+DEBUG = False
 
 if DEBUG:
     log_level = 'debug'
 else:
     log_level = 'info'
 
-project_home_dir_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+project_base_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+project_home_dir_path = os.path.join(project_base_path, project_name)
 config_dir_path = os.path.join(project_home_dir_path, 'config', "config.json")
 state_file_path = os.path.join(project_home_dir_path, 'state.json')
 temp_state_file_path = os.path.join(project_home_dir_path, 'temp_state.json')
-default_plugin_path = os.path.join(project_home_dir_path, project_name, 'src/plugins/')
+default_plugin_path = os.path.join(project_home_dir_path, 'src/plugins/')
 
 
-pluginManager = PluginManager(plugin_path=default_plugin_path, project_home=project_home_dir_path)
+pluginManager = PluginManager(plugin_path=default_plugin_path, project_home=project_base_path)
 
 
 class Files:
@@ -46,7 +46,7 @@ def initializer():
     try:
         validate_aws_credentials(aws_credentials_paths)
         logger.debug("Credentials found in the desired path")
-    except FileNotFoundError as e:
+    except FileNotFoundError:
         logger.error("No credentials found in the desired location")
         import sys
         sys.exit(0)

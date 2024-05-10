@@ -107,17 +107,17 @@ def _create_route_table(rt: RouteTableManager):
 def _delete_route_table(rt: RouteTableManager):
     logger.debug("Deleting Route Table........")
     _current_state = module.get_state()
-    for global_vpc in _current_state.get('vpcs', []):
+    for vpc_entry in _current_state.get('vpcs', []):
         index = module.extra_args['index']
-        route_table = global_vpc.get('route_tables')[index]
+        route_table = vpc_entry.get('route_tables')[index]
         if route_table.get('name') == rt.rt_input.name:
             if 'RouteTableId' in route_table:
                 rt_id = route_table['RouteTableId']
                 rt_resource = boto3.resource('ec2').RouteTable(rt_id)
                 rt.delete(rt_resource)
-                module.save_state(data=rt.rt_input.model_dump())
+                module.update_state(data=rt.rt_input.model_dump())
             else:
-                logger.info("No Route Table found in the state")
+                logger.warn("Route Table is Not Launched Yet...")
 
 
 def run_module(action: str, data: dict, *args, **kwargs):

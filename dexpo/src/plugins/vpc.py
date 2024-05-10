@@ -115,14 +115,15 @@ def _create_vpc(vpc: VpcManager) -> None:
 
 
 def _delete_vpc(vpc: VpcManager):
+    logger.debug("Deleting VPC...")
     _current_state = module.get_state()
-    for global_vpc in _current_state.get('vpcs', []):
-        if 'vpc' not in global_vpc and not global_vpc.get('vpc', {}).get('VpcId'):
-            logger.error("cant able to find vpc in state")
-            return
-        vpc_id = global_vpc.get('vpc', {}).get('VpcId')
-        vpc.delete(vpc_id)
-        module.save_state(data=vpc.vpc_input.model_dump())
+    for vpc_entry in _current_state.get('vpcs', []):
+        if vpc_entry.get('vpc', {}).get('VpcId'):
+            vpc_id = vpc_entry.get('vpc', {}).get('VpcId')
+            vpc.delete(vpc_id)
+            module.update_state(data=vpc.vpc_input.model_dump())
+        else:
+            logger.warn("VPC is Not Launched Yet...")
 
 
 def run_module(action: str, data: dict):
