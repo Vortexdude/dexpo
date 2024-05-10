@@ -115,7 +115,6 @@ def _delete_route_table(rt: RouteTableManager):
                 rt_id = route_table['RouteTableId']
                 rt_resource = boto3.resource('ec2').RouteTable(rt_id)
                 rt.delete(rt_resource)
-                # rt.rt_input.model_dump()
                 module.save_state(data=rt.rt_input.model_dump())
             else:
                 logger.info("No Route Table found in the state")
