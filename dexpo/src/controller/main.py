@@ -1,32 +1,77 @@
+import os.path
 from dexpo.src.lib.utils import Util
-from dexpo.src.controller.validator import ValidateHandler
-from dexpo.src.controller.deployer import DeployHandler
 from dexpo.settings import Files
+from dexpo.settings import pluginManager
 
-# dexpo.run_plugin_method('create_vpc', "nothing")
-# dexpo.run_plugin_method('validate_vpc', "nothing")
+SEQUENCE = ['vpc', 'internet_gateway', 'route_tables', 'subnets', 'security_groups']
 
 
 class Controller(object):
     def __init__(self, data=None):
         self.data = data.model_dump() if data else {}
+        if not Util.file_existence(Files.STATE_FILE_PATH):
+            Util.save_to_file(Files.STATE_FILE_PATH, self.data)
 
     @staticmethod
     def store_state(file=Files.STATE_FILE_PATH, data=None):
         Util.save_to_file(file, {"vpcs": data})
 
     def validate(self):
-        _vpsStates = []
-        for vpc_data in self.data['vpcs']:
-            ValidateHandler(vpc_data)
-            _vpsStates.append(vpc_data)
-        self.store_state(data=_vpsStates)
+        action = 'validate'
+        for global_vpc in self.data['vpcs']:
+            for module in SEQUENCE:
+                if not isinstance(global_vpc[module], list):  # loop through non list items
+                    pluginManager.call_plugin(
+                        plugin_name=module,
+                        action=action,
+                        data=global_vpc[module]
+                    )
+
+                else:  # loop through list items
+                    for index, resource in enumerate(global_vpc[module]):
+                        pluginManager.call_plugin(
+                            plugin_name=module,
+                            action=action,
+                            data=global_vpc[module][index],
+                            index=index
+                        )
 
     def apply(self):
-        data = Util.load_json(Files.STATE_FILE_PATH)
-        for vpc_data in data['vpcs']:
-            dh = DeployHandler(data=vpc_data)
-            dh.launch()
+        action = 'create'
+        for global_vpc in self.data['vpcs']:
+            for module in SEQUENCE:
+                if not isinstance(global_vpc[module], list):  # loop through non list items
+                    pluginManager.call_plugin(
+                        plugin_name=module,
+                        action=action,
+                        data=global_vpc[module]
+                    )
+                else:
+                    for index, resource in enumerate(global_vpc[module]):
+                        pluginManager.call_plugin(
+                            plugin_name=module,
+                            action=action,
+                            data=global_vpc[module][index],
+                            index=index
+                        )
 
     def destroy(self):
-        print('destroying...')
+        sequence = ['internet_gateway', 'subnets', 'route_tables', 'security_groups', 'vpc']
+        action = 'delete'
+        data = Util.load_json(Files.STATE_FILE_PATH)
+        for global_vpc in data.get('vpcs', []):
+            for module in sequence:
+                if not isinstance(global_vpc[module], list):  # loop through non list items
+                    pluginManager.call_plugin(
+                        plugin_name=module,
+                        action=action,
+                        data=global_vpc[module]
+                    )
+                else:
+                    for index, resource in enumerate(global_vpc[module]):
+                        pluginManager.call_plugin(
+                            plugin_name=module,
+                            action=action,
+                            data=global_vpc[module][index],
+                            index=index
+                        )

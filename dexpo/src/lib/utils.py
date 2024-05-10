@@ -58,6 +58,13 @@ class Util:
         with open(filename, "w") as json_file:
             json.dump(data, json_file, indent=4)
 
+    @staticmethod
+    def remove_file(filename: str):
+        if os.path.exists(filename):
+            os.remove(filename)
+        else:
+            print(f"The file {filename} does not exist")
+
 
 class DexFormatter(logging.Formatter):
     GREEN = "\x1b[32m"
@@ -188,14 +195,12 @@ def get_env(var):
     return os.environ.get(var)
 
 
-def validate_aws_credentials(home_path, project_path):
-    if Util.file_existence(home_path):
-        return
+def validate_aws_credentials(aws_credentials_paths):
+    for file in aws_credentials_paths:
+        if Util.file_existence(file):
+            return False
 
-    elif Util.file_existence(project_path):
-        return
-
-    elif 'AWS_ACCESS_KEY_ID' in os.environ and 'AWS_SECRET_ACCESS_KEY' in os.environ:
+    if 'AWS_ACCESS_KEY_ID' in os.environ and 'AWS_SECRET_ACCESS_KEY' in os.environ:
         return True
 
     else:
@@ -295,3 +300,51 @@ class Dexpo:
             if hasattr(resource, method_name):
                 method = getattr(resource, method_name)
                 method(*args, **kwargs)
+
+
+class PluginManager:
+    def __init__(self, plugin_path, project_home):
+        self.plugins = []
+        self.plugin_path = plugin_path
+        self._set_all_paths(project_home)
+        self._find_all_plugins()
+
+    def _set_all_paths(self, home_dir):
+        self.plugin_relative_path = self.plugin_path.replace(home_dir + '/', '')
+        self.plugin_path_import_style = str(self.plugin_relative_path.replace('/', '.'))
+
+    def _find_all_plugins(self):
+        for filename in os.listdir(self.plugin_path):
+            if filename.endswith('.py') and filename != "__init__.py":
+                self.plugins.append(os.path.splitext(filename)[0])
+
+    def load_plugin(self, name):
+        if not name:
+            raise Exception(f"Given plugin {name} not found in the directory")
+
+        import importlib
+        mod = importlib.import_module(self.plugin_path_import_style + name)
+        return mod
+
+    def call_plugin(self, plugin_name, *args, **kwargs):
+        if plugin_name and plugin_name in self.plugins:
+            plugin = self.from_spec(plugin_name)  # plugin = self.load_plugin(plugin_name)
+            # print(f"plugin imported {plugin.__name__}")
+            # print(f"plugin documentation {plugin.__doc__}")
+            # print("Directory list of the imported module: ", dir(plugin))
+            return plugin.run_module(*args, **kwargs)
+
+    def from_spec(self, name: str):
+        if name in self.plugins:
+            import importlib.util
+            module_spec = importlib.util.find_spec(self.plugin_path_import_style + name)
+            module = importlib.util.module_from_spec(module_spec)
+            module_spec.loader.exec_module(module)
+            return module
+
+
+class VpcState(object):
+    def __init__(self, d: dict = None):
+        if d is not None:
+            for key, value in d.items():
+                setattr(self, key, value)
