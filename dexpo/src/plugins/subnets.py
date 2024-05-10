@@ -47,7 +47,6 @@ class SubnetManager:
             ],
         )
         if not response['Subnets']:
-            logger.info("No subnets found in the cloud")
             return {}
 
         return response['Subnets'][0]

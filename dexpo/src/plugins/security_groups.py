@@ -51,7 +51,6 @@ class SecurityGroupManager:
             if self.sg_input.name == ec2_security_group['GroupName']:
                 sg_groups.append(ec2_security_group)
         if not sg_groups:
-            logger.info(f"No security Groups are found in the cloud")
             return {}
         else:
             return sg_groups[0]
