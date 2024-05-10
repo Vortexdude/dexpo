@@ -11,14 +11,15 @@ if DEBUG:
 else:
     log_level = 'info'
 
-project_home_dir_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+project_base_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+project_home_dir_path = os.path.join(project_base_path, project_name)
 config_dir_path = os.path.join(project_home_dir_path, 'config', "config.json")
 state_file_path = os.path.join(project_home_dir_path, 'state.json')
 temp_state_file_path = os.path.join(project_home_dir_path, 'temp_state.json')
-default_plugin_path = os.path.join(project_home_dir_path, project_name, 'src/plugins/')
+default_plugin_path = os.path.join(project_home_dir_path, 'src/plugins/')
 
 
-pluginManager = PluginManager(plugin_path=default_plugin_path, project_home=project_home_dir_path)
+pluginManager = PluginManager(plugin_path=default_plugin_path, project_home=project_base_path)
 
 
 class Files:

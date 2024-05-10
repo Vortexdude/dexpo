@@ -115,9 +115,9 @@ def _delete_ig(ig: InternetGatewayManager):
             vpc_id = module.get_resource_values('internet_gateway', ig.ig_input.name, 'VpcId')
             vpc_resource = boto3.resource('ec2').Vpc(vpc_id)
             ig.delete(vpc_resource, vpc_id)
-            module.save_state(data=ig.ig_input.model_dump())
+            module.update_state(data=ig.ig_input.model_dump())
         else:
-            logger.warn("Can't find the Internet GatewayId")
+            logger.warn("InternetGateway is Not Launched Yet...")
 
 
 def run_module(action: str, data: dict, **kwargs):

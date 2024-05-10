@@ -1,5 +1,6 @@
 *venv/
 .idea/*
-test_*
+*test_*
+*state*\.json
 __pycache__
 **/__pycache__/**
