@@ -8,7 +8,6 @@ usage() {
 # create virtual environment
 activating_venv() {
   source .venv/bin/activate
-  export PYTHONPATH=$PWD
 }
 
 
@@ -21,7 +20,6 @@ main() {
     activating_venv
   else
     echo "Virtual Environment is already activated"
-    export PYTHONPATH=$PWD
   fi
 
   case $1 in
