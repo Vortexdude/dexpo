@@ -10,7 +10,6 @@ class DexpoModule(object):
         self.state_file_path = Files.STATE_FILE_PATH
         self.temp_state_file_path = Files.TEMP_STATE_FILE_PATH
         self.module_type = module_type if module_type else None
-        # print("you can validate in the constructor of the DexpoModule \nBefore calling the method")
 
     def get_resource_values(self, vpc_resource, resource_name, request):
         """
@@ -34,6 +33,24 @@ class DexpoModule(object):
             """
 
         _current_state = self.get_state()
+        if resource_name == 'ec2':
+            vpc_name = self.base_args.vpc
+            for vpc_entry in _current_state.get('vpcs', []):
+                if 'subnet' in request.lower():
+                    for sb in vpc_entry['subnets']:
+                        if sb.get('name') == self.base_args.subnet:
+                            return sb.get('SubnetId')
+                if 'securitygroup' in request.lower():
+                    securitygroupids = []
+                    for sg in self.base_args.security_groups:
+                        for _sg in vpc_entry['security_groups']:
+                            if _sg.get('name') == sg:
+                                securitygroupids.append(_sg['GroupId'])
+                    return securitygroupids
+
+                if vpc_entry.get(vpc_resource).get('name') == vpc_name:
+                    return vpc_entry.get(vpc_resource).get(request, '')
+
         for vpc_entry in _current_state.get('vpcs', []):
             if self.extra_args.get('resource_type') == 'list':
                 index = self.extra_args['index']
@@ -83,15 +100,21 @@ class DexpoModule(object):
         if not data and 'vpcs' not in temp_data:  # return if not data
             return
 
-        for global_vpc in temp_data['vpcs']:
-            if self.module_type not in global_vpc:  # return if module not found
-                return
+        if self.module_type == 'ec2':
+            for ec2 in temp_data.get('ec2', []):
+                if ec2.get('name') == self.base_args.name:
+                    ec2.update(data)
+                    Util.save_to_file(self.state_file_path, temp_data)  # save to file
+        else:
+            for global_vpc in temp_data['vpcs']:
+                if self.module_type not in global_vpc:  # return if module not found
+                    return
 
-            if self.extra_args['resource_type'] == 'list':  # check for list type.
-                index = int(self.extra_args['index'])
-                global_vpc[self.module_type][index].update(data)
-            else:
-                global_vpc[self.module_type].update(data)
+                if self.extra_args['resource_type'] == 'list':  # check for list type.
+                    index = int(self.extra_args['index'])
+                    global_vpc[self.module_type][index].update(data)
+                else:
+                    global_vpc[self.module_type].update(data)
 
             Util.save_to_file(self.state_file_path, temp_data)  # save to file
             self.logger.debug(f"Data Stored in state {self.state_file_path}.")
