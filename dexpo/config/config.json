@@ -1,0 +1,78 @@
+{
+    "vpcs": [
+        {
+            "vpc": {
+                "name": "boto3-testing",
+                "deploy": "True",
+                "dry_run": "True",
+                "region": "ap-south-1",
+                "CidrBlock": "10.0.0.0/16"
+            },
+            "route_tables": [
+                {
+                    "name": "public-route-table",
+                    "deploy": "True",
+                    "DestinationCidrBlock": "0.0.0.0/0"
+                },
+                {
+                    "name": "private-route-table",
+                    "deploy": "True"
+                }
+            ],
+            "internet_gateway": {
+                "name": "boto3-testing-ig",
+                "deploy": "True"
+            },
+            "subnets": [
+                {
+                    "name": "public-A-boto3",
+                    "deploy": "True",
+                    "cidr": "10.0.20.0/24",
+                    "zone": "a",
+                    "route_table": "public-route-table"
+                },
+                {
+                    "name": "private-A-boto3",
+                    "deploy": "True",
+                    "cidr": "10.0.255.0/24",
+                    "zone": "b",
+                    "route_table": "private-route-table"
+                }
+            ],
+            "security_groups": [
+                {
+                    "name": "boto3-testing-sg",
+                    "description": "For Boto3-testing",
+                    "deploy": "True",
+                    "permissions": [
+                        {
+                        "FromPort": 22,
+                        "IpProtocol": "tcp",
+                        "IpRanges": [
+                            {
+                                "CidrIp": "0.0.0.0/0",
+                                "Description": "SSH Access"
+                            }
+                        ],
+                        "ToPort": 22
+                }
+                    ]
+
+                }
+            ]
+        }
+    ],
+    "ec2": [
+        {
+            "name": "boto3-ec2",
+            "deploy": "True",
+            "instance_type": "t2.micro",
+            "ami": "ami-0a7cf821b91bcccbc",
+            "subnet": "public-A-boto3",
+            "key_file": "ubuntu-20.24",
+            "region": "ap-south-1",
+            "vpc": "boto3-testing",
+            "security_groups": ["boto3-testing-sg"]
+        }
+    ]
+}
