@@ -101,10 +101,14 @@ class DexpoModule(object):
             return
 
         if self.module_type == 'ec2':
-            for ec2 in temp_data.get('ec2', []):
+            for index, ec2 in enumerate(temp_data.get('ec2', [])):
                 if ec2.get('name') == self.base_args.name:
-                    ec2.update(data)
+                    if self.extra_args['action'] == 'delete':
+                        temp_data['ec2'][index] = data
+                    else:
+                        temp_data['ec2'][index].update(data)
                     Util.save_to_file(self.state_file_path, temp_data)  # save to file
+                    self.logger.debug(f"Data Stored in state {self.state_file_path}.")
         else:
             for global_vpc in temp_data['vpcs']:
                 if self.module_type not in global_vpc:  # return if module not found

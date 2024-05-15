@@ -137,7 +137,7 @@ def _validate_ec2(ec2: Ec2Manager) -> None:
     _current_state = module.get_state()
     for _ec2 in _current_state.get('ec2', []):
         if _ec2['name'] == ec2.ec2_input.name:
-            instance_id = next(value for key, value in response if key == 'InstanceId')
+            instance_id = next((i[1] for i in response if i[0] == 'InstanceId'), None)
             if instance_id == _ec2.get('InstanceId', ''):
                 return
             if not instance_id and _ec2.get('InstanceId', ''):
@@ -172,7 +172,7 @@ def _delete_ec2(ec2: Ec2Manager) -> None:
             logger.warn("Ec2 instance is Not Launched Yet...")
             return
         ec2.delete(instance_id)
-        module.save_state(data=ec2.ec2_input.model_dump())
+        module.update_state(ec2.ec2_input.model_dump())
 
 
 def run_module(action: str, data: dict):
