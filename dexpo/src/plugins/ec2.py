@@ -95,7 +95,6 @@ class Ec2Manager:
             for instance in reservation['Instances']:
                 instances.append(instance)
         if not instances:
-            logger.info("No Ec2 instances are found")
             return {}
         from itertools import islice
         data = list(islice(instances[0].items(), 5))
@@ -142,9 +141,11 @@ def _validate_ec2(ec2: Ec2Manager) -> None:
                 return
             if not instance_id and _ec2.get('InstanceId', ''):
                 logger.warn("someone deleted the resource from the cloud.")
+                logger.info("Fixing . . . .")
+                module.update_state(ec2.ec2_input.model_dump())
                 return
             if instance_id and not _ec2.get('InstanceId', ''):
-                module.save_state(response)
+                module.update_state(response)
 
 
 def _create_ec2(ec2: Ec2Manager) -> None:
