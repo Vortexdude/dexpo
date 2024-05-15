@@ -70,8 +70,6 @@ class DexpoModule(object):
                         return
             else:
                 if vpc_entry.get(vpc_resource).get('name') == resource_name:
-                    if request not in vpc_entry.get(vpc_resource):
-                        return
                     if request == 'VpcId':
                         return vpc_entry['vpc'][request]
                     elif request == 'InternetGatewayId':
@@ -127,14 +125,22 @@ class DexpoModule(object):
 
     def update_state(self, data):
         _vpc_state = self.get_state()
-        for global_vpc in _vpc_state.get('vpcs', []):
-            if self.module_type in global_vpc:
-                if self.extra_args['resource_type'] == 'list':
-                    index = self.extra_args['index']
-                    global_vpc[self.module_type][index] = data
-                else:
-                    global_vpc[self.module_type] = data
-                Util.save_to_file(self.state_file_path, _vpc_state)
+        if 'ec2' in self.module_type:
+            _state = _vpc_state.copy()
+            for index, global_vpc in enumerate(_state.get('ec2', [])):
+                _state['ec2'][index] = data
+            Util.save_to_file(Files.STATE_FILE_PATH, _state)
+            logger.debug(f"file saved for {self.module_type}")
+        else:
+            for global_vpc in _vpc_state.get('vpcs', []):
+                if self.module_type in global_vpc:
+                    if self.extra_args['resource_type'] == 'list':
+                        index = self.extra_args['index']
+                        global_vpc[self.module_type][index] = data
+                    else:
+                        global_vpc[self.module_type] = data
+                    Util.save_to_file(self.state_file_path, _vpc_state)
+                    logger.debug(f"file saved for {self.module_type}")
 
     def get_state(self) -> dict | None:
         return Util.load_json(self.state_file_path)
