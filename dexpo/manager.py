@@ -70,6 +70,8 @@ class DexpoModule(object):
                         return
             else:
                 if vpc_entry.get(vpc_resource).get('name') == resource_name:
+                    if request not in vpc_entry.get(vpc_resource):
+                        return
                     if request == 'VpcId':
                         return vpc_entry['vpc'][request]
                     elif request == 'InternetGatewayId':
