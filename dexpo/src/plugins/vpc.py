@@ -136,7 +136,6 @@ def _delete_vpc(vpc: VpcManager):
             logger.warn("VPC is Not Launched Yet...")
 
 
-# @trace_route(logger=logger)
 def run_module(action: str, data: dict):
     inp = VpcInput(**data)
     vpc = VpcManager(inp)

@@ -134,8 +134,6 @@ def _delete_subnets(sb: SubnetManager):
                 logger.warn("Subnet is Not Launched Yet...")
 
 
-
-
 def run_module(action: str, data: dict, *args, **kwargs):
     inp = SubnetsInput(**data)
     sb = SubnetManager(inp)
