@@ -83,13 +83,14 @@ def _get_vpc_id(ig_name, state) -> str:
 def _validate_ig(ig: InternetGatewayManager):
     logger.debug("Validating Internet Gateway.......")
     response = ig.validate()
-
-    if ig_status := module.validate_resource('InternetGatewayId', response):
+    if response and not (module.validate_resource('InternetGatewayId', response)):
+        module.save_state(response)
         return
 
-    if not response and not ig_status:
-        module.update_state(ig.ig_input.model_dump())  # special case for missmatch resources
+    if not response and module.validate_resource('InternetGatewayId', response):
+        module.update_state(ig.ig_input.model_dump())
         return
+
     module.save_state(response)
 
 
