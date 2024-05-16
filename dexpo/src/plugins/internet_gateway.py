@@ -118,7 +118,7 @@ def _delete_ig(ig: InternetGatewayManager):
         if vpc_entry.get('internet_gateway', {}).get('InternetGatewayId'):
             vpc_id = module.get_resource_values('internet_gateway', ig.ig_input.name, 'VpcId')
             if not vpc_id:
-                logger.error("Please Delete the internet gateway first from the cloud")
+                module.update_state(data=ig.ig_input.model_dump())
                 return
             vpc_resource = boto3.resource('ec2').Vpc(vpc_id)
             ig.delete(vpc_resource, vpc_id)

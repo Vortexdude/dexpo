@@ -1,6 +1,7 @@
 from dexpo.src.lib.parser import DexpoArgParser
 from dexpo.src.lib.utils import DexLogger, PluginManager, validate_aws_credentials, get_conf
 import os
+from functools import wraps, partial
 from dexpo.banner import banner
 project_name = 'dexpo'
 
@@ -34,6 +35,21 @@ loginit = DexLogger(log_level, project_name)
 logger = loginit.get_logger()
 
 logger.debug("Logging Initialize ... .. .")
+
+
+def trace_route(function=None, logger=None):
+    if function is None:
+        return partial(trace_route, logger=logger)
+
+    @wraps(function)
+    def wrapper(*args, **kwargs):
+        msg = f"{function.__name__}: (args={args}, kwargs={kwargs})"
+        if logger is None:
+            print(msg)
+        else:
+            logger.debug(msg)
+    return wrapper
+
 
 aws_credentials_paths = [
     os.path.expanduser('~/.aws/credentials'),

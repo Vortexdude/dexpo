@@ -1,5 +1,5 @@
 """These are docstrings basically a documentation of the module"""
-
+from dexpo.settings import trace_route
 import boto3
 from dexpo.manager import DexpoModule
 from dexpo.src.exceptions.main import KeyMissingException, Boto3OperationError
@@ -94,10 +94,18 @@ class VpcManager:
 def _validate_vpc(vpc: VpcManager) -> None:
     logger.debug("Validating VPC........")
     response = vpc.validate()
-    if module.validate_resource('VpcId', response):
-        return
+    if not response:
+        _current_state = module.get_state()
+        for global_vpc in _current_state.get('vpcs', []):
+            vpc_id = global_vpc.get('vpc').get('VpcId', '')
+            if vpc_id:
+                logger.warning("VPC in the local state..")
+                logger.info("fixing issue . . . ")
+                module.update_state(vpc.vpc_input.model_dump())
+                return
 
-    module.save_state(response)
+    else:
+        module.save_state(response)
 
 
 def _create_vpc(vpc: VpcManager) -> None:
@@ -128,6 +136,7 @@ def _delete_vpc(vpc: VpcManager):
             logger.warn("VPC is Not Launched Yet...")
 
 
+# @trace_route(logger=logger)
 def run_module(action: str, data: dict):
     inp = VpcInput(**data)
     vpc = VpcManager(inp)

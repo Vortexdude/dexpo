@@ -70,8 +70,15 @@ class DexpoModule(object):
                         return
             else:
                 if vpc_entry.get(vpc_resource).get('name') == resource_name:
+                    if request not in vpc_entry['vpc']:
+                        return
+
+                    if request not in vpc_entry['internet_gateway']:
+                        return
+
                     if request == 'VpcId':
                         return vpc_entry['vpc'][request]
+
                     elif request == 'InternetGatewayId':
                         return vpc_entry['internet_gateway'][request]
                     else:
@@ -139,8 +146,8 @@ class DexpoModule(object):
                         global_vpc[self.module_type][index] = data
                     else:
                         global_vpc[self.module_type] = data
-                    Util.save_to_file(self.state_file_path, _vpc_state)
-                    logger.debug(f"file saved for {self.module_type}")
+            Util.save_to_file(self.state_file_path, _vpc_state)
+            logger.debug(f"file saved for {self.module_type}")
 
     def get_state(self) -> dict | None:
         return Util.load_json(self.state_file_path)
