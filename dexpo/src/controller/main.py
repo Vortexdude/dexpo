@@ -1,4 +1,3 @@
-import os.path
 from dexpo.src.lib.utils import Util
 from dexpo.settings import Files
 from dexpo.settings import pluginManager, state_file_storage
@@ -29,8 +28,7 @@ class Controller(object):
             else:
                 Util.save_to_file(Files.STATE_FILE_PATH, self.data)
 
-    def validate(self):
-        action = 'validate'
+    def _process_vpcs(self, action):
         for global_vpc in self.data['vpcs']:
             for module in LAUNCH_SEQUENCE['vpcs']:
                 if not isinstance(global_vpc[module], list):  # loop through non list items
@@ -47,61 +45,32 @@ class Controller(object):
                             data=global_vpc[module][index],
                             index=index
                         )
+
+    def validate(self):
+        action = 'validate'
+        self._process_vpcs(action)
         for ec2 in self.data['ec2']:
-            pluginManager.call_plugin(
-                plugin_name='ec2',
-                action=action,
-                data=ec2
-            )
+            pluginManager.call_plugin(plugin_name='ec2', action=action, data=ec2)
 
     def apply(self):
         action = 'create'
-        for global_vpc in self.data['vpcs']:
-            for module in LAUNCH_SEQUENCE['vpcs']:
-                if not isinstance(global_vpc[module], list):  # loop through non list items
-                    pluginManager.call_plugin(
-                        plugin_name=module,
-                        action=action,
-                        data=global_vpc[module]
-                    )
-                else:
-                    for index, resource in enumerate(global_vpc[module]):
-                        pluginManager.call_plugin(
-                            plugin_name=module,
-                            action=action,
-                            data=global_vpc[module][index],
-                            index=index
-                        )
+        self._process_vpcs(action)
         for ec2 in self.data['ec2']:
-            pluginManager.call_plugin(
-                plugin_name='ec2',
-                action=action,
-                data=ec2
-            )
+            pluginManager.call_plugin(plugin_name='ec2', action=action, data=ec2)
 
         if state_file_storage == 's3':
-            from dexpo.settings import Backend
-            from dexpo.src.lib.modules import upload_to_s3
             upload_to_s3(Backend.BUCKET_NAME, Backend.FILE_NAME, Backend.OBJECT_NAME)
 
     def destroy(self):
         action = 'delete'
         for ec2 in self.data['ec2']:
-            pluginManager.call_plugin(
-                plugin_name='ec2',
-                action=action,
-                data=ec2
-            )
+            pluginManager.call_plugin(plugin_name='ec2', action=action, data=ec2)
         sequence = DELETE_SEQUENCE['vpcs']
         data = Util.load_json(Files.STATE_FILE_PATH)
         for global_vpc in data.get('vpcs', []):
             for module in sequence:
                 if not isinstance(global_vpc[module], list):  # loop through non list items
-                    pluginManager.call_plugin(
-                        plugin_name=module,
-                        action=action,
-                        data=global_vpc[module]
-                    )
+                    pluginManager.call_plugin(plugin_name=module, action=action, data=global_vpc[module])
                 else:
                     for index, resource in enumerate(global_vpc[module]):
                         pluginManager.call_plugin(
@@ -112,6 +81,4 @@ class Controller(object):
                         )
 
         if state_file_storage == 's3':
-            from dexpo.settings import Backend
-            from dexpo.src.lib.modules import upload_to_s3
             upload_to_s3(Backend.BUCKET_NAME, Backend.FILE_NAME, Backend.OBJECT_NAME)
