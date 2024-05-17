@@ -1,7 +1,11 @@
 import os.path
 from dexpo.src.lib.utils import Util
 from dexpo.settings import Files
-from dexpo.settings import pluginManager
+from dexpo.settings import pluginManager, state_file_storage
+
+if state_file_storage == 's3':
+    from dexpo.settings import Backend
+    from dexpo.src.lib.modules import upload_to_s3, file_exists, download_state
 
 LAUNCH_SEQUENCE = {
     'vpcs': ['vpc', 'internet_gateway', 'route_tables', 'subnets', 'security_groups'],
@@ -17,7 +21,13 @@ class Controller(object):
     def __init__(self, data=None):
         self.data = data.model_dump() if data else {}
         if not Util.file_existence(Files.STATE_FILE_PATH):
-            Util.save_to_file(Files.STATE_FILE_PATH, self.data)
+            if state_file_storage == 's3':
+                if file_exists(Backend.BUCKET_NAME, Backend.OBJECT_NAME):
+                    download_state(Backend.BUCKET_NAME, Backend.OBJECT_NAME, Backend.FILE_NAME)
+                else:
+                    Util.save_to_file(Files.STATE_FILE_PATH, self.data)
+            else:
+                Util.save_to_file(Files.STATE_FILE_PATH, self.data)
 
     def validate(self):
         action = 'validate'
@@ -69,6 +79,11 @@ class Controller(object):
                 data=ec2
             )
 
+        if state_file_storage == 's3':
+            from dexpo.settings import Backend
+            from dexpo.src.lib.modules import upload_to_s3
+            upload_to_s3(Backend.BUCKET_NAME, Backend.FILE_NAME, Backend.OBJECT_NAME)
+
     def destroy(self):
         action = 'delete'
         for ec2 in self.data['ec2']:
@@ -95,3 +110,8 @@ class Controller(object):
                             data=global_vpc[module][index],
                             index=index
                         )
+
+        if state_file_storage == 's3':
+            from dexpo.settings import Backend
+            from dexpo.src.lib.modules import upload_to_s3
+            upload_to_s3(Backend.BUCKET_NAME, Backend.FILE_NAME, Backend.OBJECT_NAME)

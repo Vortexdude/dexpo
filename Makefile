@@ -2,11 +2,11 @@
 
 PROJECT_NAME := $(shell basename $(PWD))
 PROJECT_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
-export PYTHONPATH=.
 VENV_DIR := .venv
 REQUIREMENTS_FILE := requirements.txt
 .DEFAULT_GOAL := help
 LOCAL_EXEC := /bin/bash -c
+export PYTHONPATH=.
 
 # install requirements
 install:

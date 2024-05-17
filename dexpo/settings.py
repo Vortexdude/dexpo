@@ -4,6 +4,7 @@ import os
 from functools import wraps, partial
 from dexpo.banner import banner
 project_name = 'dexpo'
+state_file_storage = 's3'  # local or s3
 
 DEBUG = True
 
@@ -55,6 +56,15 @@ aws_credentials_paths = [
     os.path.expanduser('~/.aws/credentials'),
     os.path.join(project_home_dir_path, '.aws', 'credentials')
 ]
+
+if state_file_storage == 's3':
+    class Backend:
+        BUCKET_NAME = 'butena'
+        FILE_NAME = Files.STATE_FILE_PATH
+        OBJECT_NAME = 'states/state.json'
+
+
+    logger.debug("State file will be stored in the s3")
 
 
 def initializer():
