@@ -30,10 +30,12 @@ logger = module.logger
 
 
 class SubnetManager:
+    SERVICE = 'ec2'
+
     def __init__(self, sb_input: SubnetsInput):
         self.sb_input = sb_input
-        self.ec2_client = boto3.client("ec2")
-        self.ec2_resource = boto3.resource('ec2')
+        self.ec2_client = boto3.client(self.SERVICE)
+        self.ec2_resource = boto3.resource(self.SERVICE)
 
     def validate(self) -> dict:
         response = self.ec2_client.describe_subnets(

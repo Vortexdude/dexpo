@@ -31,39 +31,45 @@ logger = module.logger
 
 
 class Ec2Manager:
+    """Class for managing EC2 instances."""
+    SERVICE = 'ec2'
+
     def __init__(self, ec2_input: Ec2Input):
+        """Initialize EC2 manager."""
         self.ec2_input = ec2_input
-        self.ec2_client = boto3.client("ec2", region_name=self.ec2_input.region)
-        self.ec2_resource = boto3.resource('ec2', region_name=self.ec2_input.region)
+        self.ec2_client = boto3.client(self.SERVICE, region_name=self.ec2_input.region)
+        self.ec2_resource = boto3.resource(self.SERVICE, region_name=self.ec2_input.region)
 
     def create(self, subnet_id, security_group_ids: list):
-        if subnet_id and security_group_ids:
-            ec2Instances = self.ec2_resource.create_instances(
-                ImageId=self.ec2_input.ami,
-                InstanceType=self.ec2_input.instance_type,
-                MaxCount=1,
-                MinCount=1,
-                NetworkInterfaces=[{
-                    'SubnetId': subnet_id, 'DeviceIndex': 0,
-                    'AssociatePublicIpAddress': True, 'Groups': security_group_ids
-                }],
-                KeyName=self.ec2_input.key_file
-            )
-            instance = ec2Instances[0]
-            instance.create_tags(
-                Tags=[{"Key": "Name", "Value": self.ec2_input.name}]
-            )
-            instance.wait_until_running()
-            logger.info('Connect Ec2 instance with the following SSH command once initializing process gets '
-                        'completed.')
-            logger.info(f'ssh -i {self.ec2_input.key_file}.pem ubuntu@{instance.public_ip_address}')
-            logger.info(f"{instance.instance_id}")
-            return instance.instance_id
-        else:
+        """Create EC2 instance."""
+        if not subnet_id and not security_group_ids:
             logger.error("Subnet or security_group id is missing")
             return False
 
+        ec2Instances = self.ec2_resource.create_instances(
+            ImageId=self.ec2_input.ami,
+            InstanceType=self.ec2_input.instance_type,
+            MaxCount=1,
+            MinCount=1,
+            NetworkInterfaces=[{
+                'SubnetId': subnet_id, 'DeviceIndex': 0,
+                'AssociatePublicIpAddress': True, 'Groups': security_group_ids
+            }],
+            KeyName=self.ec2_input.key_file
+        )
+        instance = ec2Instances[0]
+        instance.create_tags(
+            Tags=[{"Key": "Name", "Value": self.ec2_input.name}]
+        )
+        instance.wait_until_running()
+        logger.info('Connect Ec2 instance with the following SSH command once initializing process gets '
+                    'completed.')
+        logger.info(f'ssh -i {self.ec2_input.key_file}.pem ubuntu@{instance.public_ip_address}')
+        logger.info(f"{instance.instance_id}")
+        return instance.instance_id
+
     def _validate_wrapper(self, vpc_id=None, instance_id=None):
+        """Wrapper for validating EC2 instance."""
         instance_ids = []
         filters = [{'Name': 'tag:Name', 'Values': [self.ec2_input.name]}]
         if vpc_id:
@@ -80,6 +86,7 @@ class Ec2Manager:
                 instances.append(instance)
 
     def validate(self, vpc_id=None, instance_id=None):
+        """Validate EC2 instance."""
         instance_ids = []
         filters = [{'Name': 'tag:Name', 'Values': [self.ec2_input.name]}]
         if vpc_id:

@@ -27,10 +27,12 @@ logger = module.logger
 
 
 class InternetGatewayManager:
+    SERVICE = 'ec2'
+
     def __init__(self, ig_input: InternetGatewayInput):
         self.ig_input = ig_input
-        self.ec2_client = boto3.client("ec2", region_name=self.ig_input.region)
-        self.ec2_resource = boto3.resource('ec2', region_name=self.ig_input.region)
+        self.ec2_client = boto3.client(self.SERVICE, region_name=self.ig_input.region)
+        self.ec2_resource = boto3.resource(self.SERVICE, region_name=self.ig_input.region)
 
     def create(self, vpc_id) -> dict:
         """launch the vpc if the vpc not available"""

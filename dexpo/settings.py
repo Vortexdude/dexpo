@@ -4,7 +4,7 @@ import os
 from functools import wraps, partial
 from dexpo.banner import banner
 project_name = 'dexpo'
-state_file_storage = 'local'  # local or s3
+state_file_storage = 's3'  # local or s3
 
 DEBUG = True
 

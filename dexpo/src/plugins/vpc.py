@@ -27,10 +27,12 @@ logger = module.logger
 
 
 class VpcManager:
+    SERVICE = 'ec2'
+
     def __init__(self, vpc_input: VpcInput):
         self.vpc_input = vpc_input
-        self.ec2_client = boto3.client("ec2", region_name=self.vpc_input.region)
-        self.ec2_resource = boto3.resource('ec2', region_name=self.vpc_input.region)
+        self.ec2_client = boto3.client(self.SERVICE, region_name=self.vpc_input.region)
+        self.ec2_resource = boto3.resource(self.SERVICE, region_name=self.vpc_input.region)
 
     def _wait_until_available(self, resource):
         """Wait until the resource is available."""

@@ -1,3 +1,5 @@
+"""This module provides functionality for managing Dexpo modules."""
+
 from dexpo.settings import logger, Files
 from dexpo.src.lib.utils import Util
 
@@ -5,6 +7,17 @@ from dexpo.src.lib.utils import Util
 class DexpoModule(object):
     """Helper Main Class for creating Plugins"""
     def __init__(self, base_arg, extra_args=None, *args, module_type=None, **kwargs):
+        """
+       Initialize DexpoModule.
+
+       Parameters:
+            base_arg: Base argument.
+            extra_args: Extra arguments.
+            module_type: Type of the module.
+
+        Returns:
+            None
+        """
         self.base_args = base_arg
         self.extra_args = extra_args
         self.state_file_path = Files.STATE_FILE_PATH
