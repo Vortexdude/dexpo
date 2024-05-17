@@ -335,12 +335,11 @@ class PluginManager:
             return plugin.run_module(*args, **kwargs)
 
     def from_spec(self, name: str):
-        if name in self.plugins:
-            import importlib.util
-            module_spec = importlib.util.find_spec(self.plugin_path_import_style + name)
-            module = importlib.util.module_from_spec(module_spec)
-            module_spec.loader.exec_module(module)
-            return module
+        import importlib.util
+        module_spec = importlib.util.find_spec(self.plugin_path_import_style + name)
+        module = importlib.util.module_from_spec(module_spec)
+        module_spec.loader.exec_module(module)
+        return module
 
 
 class VpcState(object):

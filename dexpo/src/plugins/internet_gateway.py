@@ -27,10 +27,12 @@ logger = module.logger
 
 
 class InternetGatewayManager:
+    SERVICE = 'ec2'
+
     def __init__(self, ig_input: InternetGatewayInput):
         self.ig_input = ig_input
-        self.ec2_client = boto3.client("ec2", region_name=self.ig_input.region)
-        self.ec2_resource = boto3.resource('ec2', region_name=self.ig_input.region)
+        self.ec2_client = boto3.client(self.SERVICE, region_name=self.ig_input.region)
+        self.ec2_resource = boto3.resource(self.SERVICE, region_name=self.ig_input.region)
 
     def create(self, vpc_id) -> dict:
         """launch the vpc if the vpc not available"""
@@ -83,7 +85,12 @@ def _get_vpc_id(ig_name, state) -> str:
 def _validate_ig(ig: InternetGatewayManager):
     logger.debug("Validating Internet Gateway.......")
     response = ig.validate()
-    if module.validate_resource('InternetGatewayId', response):
+    if response and not (module.validate_resource('InternetGatewayId', response)):
+        module.save_state(response)
+        return
+
+    if not response and module.validate_resource('InternetGatewayId', response):
+        module.update_state(ig.ig_input.model_dump())
         return
 
     module.save_state(response)
@@ -113,6 +120,9 @@ def _delete_ig(ig: InternetGatewayManager):
     for vpc_entry in _current_state.get('vpcs', []):
         if vpc_entry.get('internet_gateway', {}).get('InternetGatewayId'):
             vpc_id = module.get_resource_values('internet_gateway', ig.ig_input.name, 'VpcId')
+            if not vpc_id:
+                module.update_state(data=ig.ig_input.model_dump())
+                return
             vpc_resource = boto3.resource('ec2').Vpc(vpc_id)
             ig.delete(vpc_resource, vpc_id)
             module.update_state(data=ig.ig_input.model_dump())

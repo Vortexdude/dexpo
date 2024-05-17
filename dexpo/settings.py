@@ -1,8 +1,10 @@
 from dexpo.src.lib.parser import DexpoArgParser
 from dexpo.src.lib.utils import DexLogger, PluginManager, validate_aws_credentials, get_conf
 import os
+from functools import wraps, partial
 from dexpo.banner import banner
 project_name = 'dexpo'
+state_file_storage = 's3'  # local or s3
 
 DEBUG = True
 
@@ -35,10 +37,34 @@ logger = loginit.get_logger()
 
 logger.debug("Logging Initialize ... .. .")
 
+
+def trace_route(function=None, logger=None):
+    if function is None:
+        return partial(trace_route, logger=logger)
+
+    @wraps(function)
+    def wrapper(*args, **kwargs):
+        msg = f"{function.__name__}: (args={args}, kwargs={kwargs})"
+        if logger is None:
+            print(msg)
+        else:
+            logger.debug(msg)
+    return wrapper
+
+
 aws_credentials_paths = [
     os.path.expanduser('~/.aws/credentials'),
     os.path.join(project_home_dir_path, '.aws', 'credentials')
 ]
+
+if state_file_storage == 's3':
+    class Backend:
+        BUCKET_NAME = 'butena'
+        FILE_NAME = Files.STATE_FILE_PATH
+        OBJECT_NAME = 'states/state.json'
+
+
+    logger.debug("State file will be stored in the s3")
 
 
 def initializer():

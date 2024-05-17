@@ -1,7 +1,8 @@
 """These are docstrings basically a documentation of the module"""
-
+from dexpo.settings import trace_route
 import boto3
 from dexpo.manager import DexpoModule
+from dexpo.src.exceptions.main import KeyMissingException, Boto3OperationError
 from pydantic import BaseModel
 
 extra_args = dict(
@@ -26,10 +27,12 @@ logger = module.logger
 
 
 class VpcManager:
+    SERVICE = 'ec2'
+
     def __init__(self, vpc_input: VpcInput):
         self.vpc_input = vpc_input
-        self.ec2_client = boto3.client("ec2", region_name=self.vpc_input.region)
-        self.ec2_resource = boto3.resource('ec2', region_name=self.vpc_input.region)
+        self.ec2_client = boto3.client(self.SERVICE, region_name=self.vpc_input.region)
+        self.ec2_resource = boto3.resource(self.SERVICE, region_name=self.vpc_input.region)
 
     def _wait_until_available(self, resource):
         """Wait until the resource is available."""
@@ -39,39 +42,40 @@ class VpcManager:
 
     def create(self) -> dict:
         """launch the vpc if the vpc not available"""
-        if self.vpc_input.deploy:
-            response = self.ec2_client.create_vpc(CidrBlock=self.vpc_input.CidrBlock)
-            vpc_resource = self.ec2_resource.Vpc(response['Vpc']['VpcId'])
-            self._wait_until_available(vpc_resource)
-            vpc_resource.create_tags(
-                Tags=[{
-                    "Key": "Name",
-                    "Value": self.vpc_input.name
-                }]
-            )  # adding name to the VPC
+        if not self.vpc_input.deploy:
+            raise KeyMissingException('deploy', 'vpc')
 
-            return response['Vpc']
-        else:
-            return {}
+        response = self.ec2_client.create_vpc(CidrBlock=self.vpc_input.CidrBlock)
+        vpc_resource = self.ec2_resource.Vpc(response['Vpc']['VpcId'])
+        self._wait_until_available(vpc_resource)
+        vpc_resource.create_tags(
+            Tags=[{
+                "Key": "Name",
+                "Value": self.vpc_input.name
+            }]
+        )  # adding name to the VPC
+
+        return response['Vpc']
 
     def validate(self) -> dict:
         """Check the availability of the vpc with certain parameter like cidr, vpc_id"""
         filters = []
-        if self.vpc_input.CidrBlock:
-            filters.append({
-                'Name': 'cidr-block-association.cidr-block',
-                'Values': [self.vpc_input.CidrBlock]
-            })
+        if not self.vpc_input.CidrBlock:
+            raise KeyMissingException('CidrBlock', 'vpc')
 
-        elif self.vpc_input.name:
-            filters.append({
-                "Name": "tag:Name",
-                "Values": [self.vpc_input.name]
+        if not self.vpc_input.name:
+            raise KeyMissingException('CidrBlock', 'vpc')
 
-            })
-        else:
-            logger.error('For search the vpc need to give Identification')
-            return {}
+        filters.append({
+            'Name': 'cidr-block-association.cidr-block',
+            'Values': [self.vpc_input.CidrBlock]
+        })
+
+        filters.append({
+            "Name": "tag:Name",
+            "Values": [self.vpc_input.name]
+
+        })
 
         response = self.ec2_client.describe_vpcs(Filters=filters)
         if not response['Vpcs']:
@@ -81,21 +85,29 @@ class VpcManager:
 
     def delete(self, vpc_id):
         """ Delete the VPC """
-        try:
-            self.ec2_client.delete_vpc(VpcId=vpc_id)
+        response = self.ec2_client.delete_vpc(VpcId=vpc_id)
+        if response:
             logger.info("VPC Deleted Successfully!")
-        except Exception as e:
+        else:
             logger.error("Cant able to delete the VPC")
-            raise Exception("cant able to delete VPC")
+            raise Boto3OperationError()
 
 
 def _validate_vpc(vpc: VpcManager) -> None:
     logger.debug("Validating VPC........")
     response = vpc.validate()
-    if module.validate_resource('VpcId', response):
-        return
+    if not response:
+        _current_state = module.get_state()
+        for global_vpc in _current_state.get('vpcs', []):
+            vpc_id = global_vpc.get('vpc').get('VpcId', '')
+            if vpc_id:
+                logger.warning("VPC in the local state..")
+                logger.info("fixing issue . . . ")
+                module.update_state(vpc.vpc_input.model_dump())
+                return
 
-    module.save_state(response)
+    else:
+        module.save_state(response)
 
 
 def _create_vpc(vpc: VpcManager) -> None:

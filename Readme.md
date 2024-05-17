@@ -11,18 +11,24 @@ This repository contains a Python script that utilizes Boto3, the AWS SDK for Py
 
 ## Installation
 
-1. Clone this repository to your local machine:
+1. Make sure you have python3, pip3 and make
+
+   ```bash
+   sudo apt install -y make git python3-pip python3-venv
+   ```
+
+2. Clone this repository to your local machine:
 
     ```bash
     git clone https://github.com/Vortexdude/dexpo
     ```
 
-2. Go to the project Directory
+3. Go to the project Directory
     ``` bash
    cd dexpo
    ```
 
-3. Install dependencies:
+4. Install dependencies:
 
     ```bash
     make install 

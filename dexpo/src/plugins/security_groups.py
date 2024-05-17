@@ -40,10 +40,12 @@ logger = module.logger
 
 
 class SecurityGroupManager:
+    SERVICE = 'ec2'
+
     def __init__(self, sg_input: SecurityGroupInput):
         self.sg_input = sg_input
-        self.ec2_client = boto3.client("ec2")
-        self.ec2_resource = boto3.resource('ec2')
+        self.ec2_client = boto3.client(self.SERVICE)
+        self.ec2_resource = boto3.resource(self.SERVICE)
 
     def validate(self) -> dict:
         sg_groups = []

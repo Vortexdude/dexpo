@@ -1,3 +1,5 @@
+"""This module provides functionality for managing Dexpo modules."""
+
 from dexpo.settings import logger, Files
 from dexpo.src.lib.utils import Util
 
@@ -5,6 +7,17 @@ from dexpo.src.lib.utils import Util
 class DexpoModule(object):
     """Helper Main Class for creating Plugins"""
     def __init__(self, base_arg, extra_args=None, *args, module_type=None, **kwargs):
+        """
+       Initialize DexpoModule.
+
+       Parameters:
+            base_arg: Base argument.
+            extra_args: Extra arguments.
+            module_type: Type of the module.
+
+        Returns:
+            None
+        """
         self.base_args = base_arg
         self.extra_args = extra_args
         self.state_file_path = Files.STATE_FILE_PATH
@@ -70,9 +83,16 @@ class DexpoModule(object):
                         return
             else:
                 if vpc_entry.get(vpc_resource).get('name') == resource_name:
+
                     if request == 'VpcId':
+                        if request not in vpc_entry['vpc']:
+                            return
                         return vpc_entry['vpc'][request]
+
                     elif request == 'InternetGatewayId':
+                        if request not in vpc_entry['internet_gateway']:
+                            return
+
                         return vpc_entry['internet_gateway'][request]
                     else:
                         return
@@ -125,14 +145,22 @@ class DexpoModule(object):
 
     def update_state(self, data):
         _vpc_state = self.get_state()
-        for global_vpc in _vpc_state.get('vpcs', []):
-            if self.module_type in global_vpc:
-                if self.extra_args['resource_type'] == 'list':
-                    index = self.extra_args['index']
-                    global_vpc[self.module_type][index] = data
-                else:
-                    global_vpc[self.module_type] = data
-                Util.save_to_file(self.state_file_path, _vpc_state)
+        if 'ec2' in self.module_type:
+            _state = _vpc_state.copy()
+            for index, global_vpc in enumerate(_state.get('ec2', [])):
+                _state['ec2'][index] = data
+            Util.save_to_file(Files.STATE_FILE_PATH, _state)
+            logger.debug(f"file saved for {self.module_type}")
+        else:
+            for global_vpc in _vpc_state.get('vpcs', []):
+                if self.module_type in global_vpc:
+                    if self.extra_args['resource_type'] == 'list':
+                        index = self.extra_args['index']
+                        global_vpc[self.module_type][index] = data
+                    else:
+                        global_vpc[self.module_type] = data
+            Util.save_to_file(self.state_file_path, _vpc_state)
+            logger.debug(f"file saved for {self.module_type}")
 
     def get_state(self) -> dict | None:
         return Util.load_json(self.state_file_path)
