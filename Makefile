@@ -9,21 +9,13 @@ REQUIREMENTS_FILE := requirements.txt
 LOCAL_EXEC := /bin/bash -c
 
 # install requirements
-install: $(VENV_DIR)/bin/activate
-	@echo "Installing Python dependencies..."
-	@$(VENV_DIR)/bin/pip3 install -r $(REQUIREMENTS_FILE)
-	@echo "Python dependencies installed successfully."
-
-
-# check the python virtual env is created or not
-$(VENV_DIR)/bin/activate:
-	@test -d $(VENV_DIR) || python3 -m venv $(VENV_DIR)
-	@echo "Virtual environment created at $(VENV_DIR)."
+install:
+	@$(LOCAL_EXEC) "(./bin/install ${REQUIREMENTS_FILE})"
 
 apply: install
 	@$(LOCAL_EXEC) "(./bin/run --apply)"
 
-destroy: install
+destroy:
 	@$(LOCAL_EXEC) "(./bin/run --destroy)"
 
 help:

@@ -1,0 +1,80 @@
+#!/bin/bash
+#set -ex
+repo=deadsnakes
+REQUIRED_PYTHON=3.11
+VENV_NAME=.venv
+REQUIREMENTS_FILE="${1:-requirements.txt}"
+
+_python_v=$(python3 --version 2>/dev/null | cut -d ' ' -f2)
+_python_v_minor=$(echo $_python_v | cut -d'.' -f2 )
+
+add_repo(){
+  echo "Adding repository ${repo} ..."
+  sudo add-apt-repository ppa:${repo}/ppa
+  sudo apt update -y
+}
+
+install_python3(){
+  if python${REQUIRED_PYTHON} --version 2>/dev/null; then
+    echo "Python ${REQUIRED_PYTHON} is already installed"
+  else
+    echo "Python ${REQUIRED_PYTHON} is not installed"
+    sudo apt install -y python${REQUIRED_PYTHON} \
+    python${REQUIRED_PYTHON}-distutils \
+    python${REQUIRED_PYTHON}-venv
+  fi
+}
+
+install_pip3(){
+  if which pip3 2>/dev/null; then
+    echo "Pip3 is already installed"
+  else
+    echo "Installing pip3"
+    curl -sS https://bootstrap.pypa.io/get-pip.py | "${python3_bin}"
+  fi
+}
+
+create_venv(){
+  if [ -d "${VENV_NAME}" ]; then
+    echo "Virtual Environment is already exist"
+  else
+    echo "Creating Virtual environment"
+    ${python3_bin} -m venv "${VENV_NAME}"
+    echo "Virtual environment ${VENV_NAME} is created successfully."
+  fi
+}
+
+activate_venv(){
+  echo "Activating Virtual Environment"
+  source "${VENV_NAME}"/bin/activate
+}
+
+install_deps(){
+  echo "Installing Python dependencies..."
+  "${VENV_NAME}"/bin/pip3 install -r ${REQUIREMENTS_FILE}
+  echo "Python dependencies installed successfully."
+}
+
+setup(){
+  install_pip3
+  create_venv
+  activate_venv
+  install_deps
+}
+
+
+main(){
+  if [ "${_python_v_minor}" -gt 11 ]; then
+    echo "Python is already installed"
+    python3_bin=$(which python3)
+  else
+      repo_status=$(find /etc/apt/ -name ${repo}*.list)
+      [ -z "${repo_status}" ] && add_repo || echo "Repo is already added."
+      install_python3
+      python3_bin=$(which python${REQUIRED_PYTHON})
+  fi
+
+  setup
+}
+
+main
