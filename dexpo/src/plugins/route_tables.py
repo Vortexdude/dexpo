@@ -2,8 +2,7 @@
 
 import boto3
 from dexpo.manager import DexpoModule
-from pydantic import BaseModel
-from typing import Optional
+from dexpo.src.lib.models import RouteTable
 
 REGION = 'ap-south-1'
 
@@ -12,10 +11,8 @@ extra_args = dict(
 )
 
 
-class RouteTableInput(BaseModel):
-    name: str
-    deploy: bool
-    DestinationCidrBlock: Optional[str] = None
+class RouteTableInput(RouteTable):
+    pass
 
 
 module = DexpoModule(

@@ -51,6 +51,8 @@ class Controller(object):
         self._process_vpcs(action)
         for ec2 in self.data['ec2']:
             pluginManager.call_plugin(plugin_name='ec2', action=action, data=ec2)
+        for s3 in self.data['s3']:
+            pluginManager.call_plugin(plugin_name='s3', action=action, data=s3)
 
     def apply(self):
         action = 'create'

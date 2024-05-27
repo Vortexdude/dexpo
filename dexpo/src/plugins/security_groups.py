@@ -1,34 +1,17 @@
 """These are docstrings basically a documentation of the module"""
 
 import boto3
-from typing import List
 from dexpo.manager import DexpoModule
-from pydantic import BaseModel
+from dexpo.src.lib.models import SecurityGroup
 
-REGION = 'ap-south-1'
 
 extra_args = dict(
     resource_type='list',
 )
 
 
-class SecurityGroupPermissionIpRange(BaseModel):
-    CidrIp: str
-    Description: str
-
-
-class SecurityGroupPermission(BaseModel):
-    FromPort: int
-    ToPort: int
-    IpProtocol: str
-    IpRanges: List[SecurityGroupPermissionIpRange]
-
-
-class SecurityGroupInput(BaseModel):
-    name: str
-    deploy: bool
-    description: str
-    permissions: list[SecurityGroupPermission]
+class SecurityGroupInput(SecurityGroup):
+    pass
 
 
 module = DexpoModule(

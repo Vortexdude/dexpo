@@ -1,21 +1,16 @@
 """These are docstrings basically a documentation of the module"""
-from dexpo.settings import trace_route
 import boto3
 from dexpo.manager import DexpoModule
 from dexpo.src.exceptions.main import KeyMissingException, Boto3OperationError
-from pydantic import BaseModel
+from dexpo.src.lib.models import Vpc
 
 extra_args = dict(
     resource_type='dict',
 )
 
 
-class VpcInput(BaseModel):
-    name: str
-    deploy: bool
-    dry_run: bool
-    region: str
-    CidrBlock: str
+class VpcInput(Vpc):
+    pass
 
 
 module = DexpoModule(

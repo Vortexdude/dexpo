@@ -2,19 +2,15 @@
 
 import boto3
 from dexpo.manager import DexpoModule
-from pydantic import BaseModel, ValidationError
-from typing import Optional
+from dexpo.src.lib.models import InternetGateway
 
 extra_args = dict(
     resource_type='dict',
 )
 
 
-class InternetGatewayInput(BaseModel):
-    name: str
-    deploy: bool
-    dry_run: bool = True
-    region: Optional[str | None] = 'ap-south-1'
+class InternetGatewayInput(InternetGateway):
+    region: str = 'ap-south-1'
 
 
 module = DexpoModule(

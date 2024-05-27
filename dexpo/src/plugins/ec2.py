@@ -2,24 +2,15 @@
 
 import boto3
 from dexpo.manager import DexpoModule
-from pydantic import BaseModel
-from typing import Optional
+from dexpo.src.lib.models import Ec2Model
 
 extra_args = dict(
     resource_type='dict',
 )
 
 
-class Ec2Input(BaseModel):
-    name: str
-    deploy: bool
-    instance_type: str
-    ami: str
-    key_file: str
-    region: str
-    subnet: str
-    vpc: str
-    security_groups: Optional[list] = None
+class Ec2Input(Ec2Model):
+    pass
 
 
 module = DexpoModule(

@@ -2,9 +2,8 @@
 
 import boto3
 from botocore.exceptions import ClientError
-
+from dexpo.src.lib.models import Subnet
 from dexpo.manager import DexpoModule
-from pydantic import BaseModel
 
 REGION = 'ap-south-1'
 
@@ -13,12 +12,8 @@ extra_args = dict(
 )
 
 
-class SubnetsInput(BaseModel):
-    name: str
-    deploy: bool
-    cidr: str
-    zone: str
-    route_table: str
+class SubnetsInput(Subnet):
+    pass
 
 
 module = DexpoModule(
