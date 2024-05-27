@@ -157,8 +157,9 @@ def _validate_ec2(ec2: Ec2Manager) -> None:
 
 def _create_ec2(ec2: Ec2Manager) -> None:
     logger.debug("Creating ec2........")
-    _current_state = module.get_state()
-    for ec2_state in _current_state.get('ec2', []):
+    state_container: dict = module.get_state()
+    # check if the state having the InstanceId key
+    for ec2_state in state_container.get('ec2', []):
         if ec2_state.get('InstanceId', ''):
             logger.info('Ec2 already exist')
             return
@@ -173,8 +174,8 @@ def _create_ec2(ec2: Ec2Manager) -> None:
 
 def _delete_ec2(ec2: Ec2Manager) -> None:
     logger.debug("Deleting ec2...")
-    _current_state = module.get_state()
-    for _ec2 in _current_state.get('ec2', []):
+    state_container = module.get_state()
+    for _ec2 in state_container.get('ec2', []):
         instance_id = _ec2.get('InstanceId', '')
         if not instance_id:
             logger.warn("Ec2 instance is Not Launched Yet...")

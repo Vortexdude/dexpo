@@ -81,8 +81,9 @@ def _validate_route_table(rt: RouteTableManager):
 def _create_route_table(rt: RouteTableManager):
     logger.debug("Creating Route Table........")
     ig_id = None
-    _current_state = module.get_state()
-    for vpc_entry in _current_state.get('vpcs', []):
+    state_container = module.get_state()
+    # check if the state having the RouteTableId key
+    for vpc_entry in state_container.get('vpcs', []):
         index = module.extra_args['index']
         if vpc_entry.get('route_tables', [])[index].get('RouteTableId'):
             logger.info('Route Table already exist')
@@ -108,8 +109,8 @@ def _create_route_table(rt: RouteTableManager):
 
 def _delete_route_table(rt: RouteTableManager):
     logger.debug("Deleting Route Table........")
-    _current_state = module.get_state()
-    for vpc_entry in _current_state.get('vpcs', []):
+    state_container = module.get_state()
+    for vpc_entry in state_container.get('vpcs', []):
         index = module.extra_args['index']
         route_table = vpc_entry.get('route_tables')[index]
         if route_table.get('name') == rt.rt_input.name:

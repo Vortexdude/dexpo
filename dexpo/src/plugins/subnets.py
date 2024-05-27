@@ -94,8 +94,9 @@ def _validate_subnets(sb: SubnetManager):
 
 def _create_subnets(sb: SubnetManager):
     logger.debug("Creating Subnet...")
-    _current_state = module.get_state()
-    for vpc_entry in _current_state.get('vpcs', []):
+    state_container = module.get_state()
+    # check if the state having the SubnetId key
+    for vpc_entry in state_container.get('vpcs', []):
         index = module.extra_args['index']
         if vpc_entry.get('subnets', [])[index].get('SubnetId'):
             logger.info('Subnet is already present.')
@@ -122,9 +123,9 @@ def _create_subnets(sb: SubnetManager):
 
 def _delete_subnets(sb: SubnetManager):
     logger.debug("Deleting Subnet...")
-    _current_state = module.get_state()
+    state_container = module.get_state()
     index = module.extra_args['index']
-    for vpc_entry in _current_state.get('vpcs', []):
+    for vpc_entry in state_container.get('vpcs', []):
         subnet = vpc_entry.get('subnets')[index]
         if subnet['name'] == sb.sb_input.name:
             if 'SubnetId' in subnet:
