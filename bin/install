@@ -45,8 +45,13 @@ create_venv(){
 }
 
 activate_venv(){
-  echo "Activating Virtual Environment"
-  source "${VENV_NAME}"/bin/activate
+  if [ -z ${VIRTUAL_ENV+x} ]; then
+    echo "Activating Virtual Environment"
+    source "${VENV_NAME}"/bin/activate
+  else
+    echo "Virtual Environment is already activated.";
+  fi
+
 }
 
 install_deps(){
