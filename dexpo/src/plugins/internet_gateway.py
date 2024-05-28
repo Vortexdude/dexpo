@@ -2,19 +2,15 @@
 
 import boto3
 from dexpo.manager import DexpoModule
-from pydantic import BaseModel, ValidationError
-from typing import Optional
+from dexpo.src.lib.models import InternetGateway
 
 extra_args = dict(
     resource_type='dict',
 )
 
 
-class InternetGatewayInput(BaseModel):
-    name: str
-    deploy: bool
-    dry_run: bool = True
-    region: Optional[str | None] = 'ap-south-1'
+class InternetGatewayInput(InternetGateway):
+    region: str = 'ap-south-1'
 
 
 module = DexpoModule(
@@ -98,13 +94,14 @@ def _validate_ig(ig: InternetGatewayManager):
 
 def _create_ig(ig: InternetGatewayManager):
     logger.debug("creating Internet Gateway...")
-    _current_state = module.get_state()
-    for vpc_entry in _current_state.get('vpcs', []):
+    state_container: dict = module.get_state()
+    # check if the state having the InternetGatewayId key
+    for vpc_entry in state_container.get('vpcs', []):
         if vpc_entry.get('internet_gateway', {}).get('InternetGatewayId'):
             logger.info('InternetGateway already exist')
             return
 
-    vpc_id = _get_vpc_id(ig.ig_input.name, _current_state)
+    vpc_id = _get_vpc_id(ig.ig_input.name, state_container)
     response = ig.create(vpc_id)
     if not response:
         logger.info(f"There is an Error while creating internet gateway.")
@@ -116,8 +113,8 @@ def _create_ig(ig: InternetGatewayManager):
 
 def _delete_ig(ig: InternetGatewayManager):
     logger.debug("Deleting Internet Gateway...")
-    _current_state = module.get_state()
-    for vpc_entry in _current_state.get('vpcs', []):
+    state_container = module.get_state()
+    for vpc_entry in state_container.get('vpcs', []):
         if vpc_entry.get('internet_gateway', {}).get('InternetGatewayId'):
             vpc_id = module.get_resource_values('internet_gateway', ig.ig_input.name, 'VpcId')
             if not vpc_id:

@@ -74,5 +74,15 @@
             "vpc": "boto3-testing",
             "security_groups": ["boto3-testing-sg"]
         }
+    ],
+    "s3": [
+        {
+            "name": "boto3-testing-pre",
+            "deploy": "True",
+            "ACL": "private",
+            "CreateBucketConfiguration": {
+                "LocationConstraint": "ap-south-1"
+            }
+        }
     ]
 }

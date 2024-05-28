@@ -2,24 +2,15 @@
 
 import boto3
 from dexpo.manager import DexpoModule
-from pydantic import BaseModel
-from typing import Optional
+from dexpo.src.lib.models import Ec2Model
 
 extra_args = dict(
     resource_type='dict',
 )
 
 
-class Ec2Input(BaseModel):
-    name: str
-    deploy: bool
-    instance_type: str
-    ami: str
-    key_file: str
-    region: str
-    subnet: str
-    vpc: str
-    security_groups: Optional[list] = None
+class Ec2Input(Ec2Model):
+    pass
 
 
 module = DexpoModule(
@@ -140,8 +131,8 @@ def _validate_ec2(ec2: Ec2Manager) -> None:
         return
 
     response = ec2.validate(vpc_id)
-    _current_state = module.get_state()
-    for _ec2 in _current_state.get('ec2', []):
+    state_container: dict = module.get_state()
+    for _ec2 in state_container.get('ec2', []):
         if _ec2['name'] == ec2.ec2_input.name:
             instance_id = next((i[1] for i in response if i[0] == 'InstanceId'), None)
             if instance_id == _ec2.get('InstanceId', ''):
@@ -157,8 +148,9 @@ def _validate_ec2(ec2: Ec2Manager) -> None:
 
 def _create_ec2(ec2: Ec2Manager) -> None:
     logger.debug("Creating ec2........")
-    _current_state = module.get_state()
-    for ec2_state in _current_state.get('ec2', []):
+    state_container: dict = module.get_state()
+    # check if the state having the InstanceId key
+    for ec2_state in state_container.get('ec2', []):
         if ec2_state.get('InstanceId', ''):
             logger.info('Ec2 already exist')
             return
@@ -173,8 +165,8 @@ def _create_ec2(ec2: Ec2Manager) -> None:
 
 def _delete_ec2(ec2: Ec2Manager) -> None:
     logger.debug("Deleting ec2...")
-    _current_state = module.get_state()
-    for _ec2 in _current_state.get('ec2', []):
+    state_container = module.get_state()
+    for _ec2 in state_container.get('ec2', []):
         instance_id = _ec2.get('InstanceId', '')
         if not instance_id:
             logger.warn("Ec2 instance is Not Launched Yet...")

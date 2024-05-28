@@ -51,12 +51,16 @@ class Controller(object):
         self._process_vpcs(action)
         for ec2 in self.data['ec2']:
             pluginManager.call_plugin(plugin_name='ec2', action=action, data=ec2)
+        for s3 in self.data['s3']:
+            pluginManager.call_plugin(plugin_name='s3', action=action, data=s3)
 
     def apply(self):
         action = 'create'
         self._process_vpcs(action)
         for ec2 in self.data['ec2']:
             pluginManager.call_plugin(plugin_name='ec2', action=action, data=ec2)
+        for s3 in self.data['s3']:
+            pluginManager.call_plugin(plugin_name='s3', action=action, data=s3)
 
         if state_file_storage == 's3':
             upload_to_s3(Backend.BUCKET_NAME, Backend.FILE_NAME, Backend.OBJECT_NAME)
@@ -65,6 +69,9 @@ class Controller(object):
         action = 'delete'
         for ec2 in self.data['ec2']:
             pluginManager.call_plugin(plugin_name='ec2', action=action, data=ec2)
+        for s3 in self.data['s3']:
+            pluginManager.call_plugin(plugin_name='s3', action=action, data=s3)
+
         sequence = DELETE_SEQUENCE['vpcs']
         data = Util.load_json(Files.STATE_FILE_PATH)
         for global_vpc in data.get('vpcs', []):

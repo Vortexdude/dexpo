@@ -1,21 +1,16 @@
 """These are docstrings basically a documentation of the module"""
-from dexpo.settings import trace_route
 import boto3
 from dexpo.manager import DexpoModule
 from dexpo.src.exceptions.main import KeyMissingException, Boto3OperationError
-from pydantic import BaseModel
+from dexpo.src.lib.models import Vpc
 
 extra_args = dict(
     resource_type='dict',
 )
 
 
-class VpcInput(BaseModel):
-    name: str
-    deploy: bool
-    dry_run: bool
-    region: str
-    CidrBlock: str
+class VpcInput(Vpc):
+    pass
 
 
 module = DexpoModule(
@@ -96,15 +91,18 @@ class VpcManager:
 def _validate_vpc(vpc: VpcManager) -> None:
     logger.debug("Validating VPC........")
     response = vpc.validate()
-    if not response:
+    if not response:  # if the vpc not exist in the cloud
         _current_state = module.get_state()
         for global_vpc in _current_state.get('vpcs', []):
-            vpc_id = global_vpc.get('vpc').get('VpcId', '')
-            if vpc_id:
-                logger.warning("VPC in the local state..")
-                logger.info("fixing issue . . . ")
-                module.update_state(vpc.vpc_input.model_dump())
-                return
+            # check the input name and the state name
+            if global_vpc.get('vpc').get('name') == vpc.vpc_input.name:
+                vpc_id = global_vpc.get('vpc').get('VpcId', '')
+                # if the vpc exist in state
+                if vpc_id:
+                    logger.warning("VPC exists in the state not in cloud")
+                    logger.info("fixing issue . . . ")
+                    module.update_state(vpc.vpc_input.model_dump())
+                    return
 
     else:
         module.save_state(response)
@@ -112,11 +110,12 @@ def _validate_vpc(vpc: VpcManager) -> None:
 
 def _create_vpc(vpc: VpcManager) -> None:
     logger.debug("Creating VPC........")
-    _current_state = module.get_state()
-    for vpc_entry in _current_state.get('vpcs', []):
-        if vpc_entry.get('vpc', {}).get('VpcId'):
-            logger.info('Vpc already exist')
-            return
+    state_container = module.get_state()
+    for vpc_entry in state_container.get('vpcs', []):
+        if vpc_entry.get('vpc', {}).get('name') == vpc.vpc_input.name:
+            if vpc_entry.get('vpc', {}).get('VpcId'):
+                logger.info('Vpc already exist')
+                return
 
     response = vpc.create()
     if response:
@@ -128,8 +127,8 @@ def _create_vpc(vpc: VpcManager) -> None:
 
 def _delete_vpc(vpc: VpcManager):
     logger.debug("Deleting VPC...")
-    _current_state = module.get_state()
-    for vpc_entry in _current_state.get('vpcs', []):
+    state_container = module.get_state()
+    for vpc_entry in state_container.get('vpcs', []):
         if vpc_entry.get('vpc', {}).get('VpcId'):
             vpc_id = vpc_entry.get('vpc', {}).get('VpcId')
             vpc.delete(vpc_id)

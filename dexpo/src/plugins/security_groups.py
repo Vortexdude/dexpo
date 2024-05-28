@@ -1,34 +1,17 @@
 """These are docstrings basically a documentation of the module"""
 
 import boto3
-from typing import List
 from dexpo.manager import DexpoModule
-from pydantic import BaseModel
+from dexpo.src.lib.models import SecurityGroup
 
-REGION = 'ap-south-1'
 
 extra_args = dict(
     resource_type='list',
 )
 
 
-class SecurityGroupPermissionIpRange(BaseModel):
-    CidrIp: str
-    Description: str
-
-
-class SecurityGroupPermission(BaseModel):
-    FromPort: int
-    ToPort: int
-    IpProtocol: str
-    IpRanges: List[SecurityGroupPermissionIpRange]
-
-
-class SecurityGroupInput(BaseModel):
-    name: str
-    deploy: bool
-    description: str
-    permissions: list[SecurityGroupPermission]
+class SecurityGroupInput(SecurityGroup):
+    pass
 
 
 module = DexpoModule(
@@ -97,8 +80,9 @@ def _validate_security_group(sg: SecurityGroupManager):
 
 def _create_security_group(sg: SecurityGroupManager):
     logger.debug("Creating Security Groups...")
-    _current_state = module.get_state()
-    for vpc_entry in _current_state.get('vpcs', []):
+    state_container = module.get_state()
+    # check if the state having the GroupId key
+    for vpc_entry in state_container.get('vpcs', []):
         index = module.extra_args['index']
         if vpc_entry.get('security_groups', [])[index].get('GroupId'):
             logger.info('Security Group is already present.')
@@ -116,8 +100,8 @@ def _create_security_group(sg: SecurityGroupManager):
 
 def _delete_security_group(sg: SecurityGroupManager):
     logger.debug("Deleting Security Groups...")
-    _current_state = module.get_state()
-    for vpc_entry in _current_state.get('vpcs', []):
+    state_container = module.get_state()
+    for vpc_entry in state_container.get('vpcs', []):
         index = int(module.extra_args['index'])
         security_group = vpc_entry.get('security_groups')[index]
         if security_group.get('name') == sg.sg_input.name:
