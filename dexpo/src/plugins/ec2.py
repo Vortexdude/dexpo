@@ -131,8 +131,8 @@ def _validate_ec2(ec2: Ec2Manager) -> None:
         return
 
     response = ec2.validate(vpc_id)
-    _current_state = module.get_state()
-    for _ec2 in _current_state.get('ec2', []):
+    state_container: dict = module.get_state()
+    for _ec2 in state_container.get('ec2', []):
         if _ec2['name'] == ec2.ec2_input.name:
             instance_id = next((i[1] for i in response if i[0] == 'InstanceId'), None)
             if instance_id == _ec2.get('InstanceId', ''):

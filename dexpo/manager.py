@@ -129,6 +129,15 @@ class DexpoModule(object):
                         temp_data['ec2'][index].update(data)
                     Util.save_to_file(self.state_file_path, temp_data)  # save to file
                     self.logger.debug(f"Data Stored in state {self.state_file_path}.")
+        elif self.module_type == 's3':
+            for index, s3 in enumerate(temp_data.get('s3', [])):
+                if s3.get('name') == self.base_args.name:
+                    if self.extra_args['action'] == 'delete':
+                        temp_data['s3'][index] = data
+                    else:
+                        temp_data['s3'][index].update(data)
+                    Util.save_to_file(self.state_file_path, temp_data)  # save to file
+                    self.logger.debug(f"Data Stored in state {self.state_file_path}.")
         else:
             for global_vpc in temp_data['vpcs']:
                 if self.module_type not in global_vpc:  # return if module not found
@@ -145,7 +154,14 @@ class DexpoModule(object):
 
     def update_state(self, data):
         _vpc_state = self.get_state()
-        if 'ec2' in self.module_type:
+        if 's3' in self.module_type:
+            _state = _vpc_state.copy()
+            for index, s3 in enumerate(_state.get('s3', [])):
+                _state['s3'][index] = data
+            Util.save_to_file(Files.STATE_FILE_PATH, _state)
+            logger.debug(f"file saved for {self.module_type}")
+
+        elif 'ec2' in self.module_type:
             _state = _vpc_state.copy()
             for index, global_vpc in enumerate(_state.get('ec2', [])):
                 _state['ec2'][index] = data
