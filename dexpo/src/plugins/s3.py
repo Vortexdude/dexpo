@@ -55,6 +55,7 @@ class S3Manager:
                 }
             )
             logger.info(f"Bucket {self.s3_input.name} created Successfully !")
+
             return response
         except ClientError as e:
             if e.response['ResponseMetadata']['HTTPStatusCode'] == 409:
@@ -97,9 +98,9 @@ def _create_s3(s3m: S3Manager):
 
     response = s3m.create()
     if response and response['ResponseMetadata']['HTTPStatusCode'] == 200:
+        response = s3m.validate()
         data = s3m.s3_input.model_dump()
-        data['location'] = response['Location']
-        print(f"{data=}")
+        data['CreationDate'] = response['CreationDate'].strftime('%m/%d/%Y')
         module.update_state(data)
 
 
@@ -111,7 +112,7 @@ def _delete_s3(s3m: S3Manager):
             logger.warning("Bucket is not launched yet")
             return
         response = s3m.delete()
-        if int(response['ResponseMetadata']['RequestId']['HTTPStatusCode']) == 204:
+        if response and response['ResponseMetadata']['HTTPStatusCode'] == 204:
             logger.info("Bucket is deleted successfully!")
             module.update_state(s3m.s3_input.model_dump())
 
